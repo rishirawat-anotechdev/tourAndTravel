@@ -14,98 +14,58 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import StatisticCard from "../Components/StatisticCard";
-import { FilterList, RemoveRedEyeOutlined, Search } from "@mui/icons-material";
+import { RemoveRedEyeOutlined, Search } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import CustomPagination from "../Components/CustomPagination";
-import first1 from "../assets/first1.jpg";
 
-
-const data = [
-  {
-    title: "Open Tickets",
-    value: 62,
-    total: 73,
-    percentage: 84.93,
-    isPositive: true,
-  },
-  {
-    title: "Answer Ticket",
-    value: 6,
-    total: 73,
-    percentage: 8.22,
-    isPositive: false,
-  },
-  {
-    title: "Replied Ticket",
-    value: 4,
-    total: 72,
-    percentage: 6.85,
-    isPositive: false,
-  },
-  {
-    title: "Closded Ticket",
-    value: 1,
-    total: 73,
-    percentage: 0,
-    isPositive: false,
-  },
-];
-
-const transactionData = [
-  {
-    id: 1,
-    TouristName: "Rocky Singh",
-    Email: "raw@rocky.gamil.com",
-    Subject: "Hello this is rishi rawat what can i help you ",
-    status: "Answered",
-    LastReply: "19/09/2024",
-  },
-  {
-    id: 2,
-    TouristName: "Dheeru Singh",
-    Email: "dheeru@rocky.gamil.com",
-    Subject: "Hello this is rishi rawat what can i help you  what you need",
-    status: "Open",
-    LastReply: "16/09/2024",
-  },
-  {
-    id: 2,
-    TouristName: "Dheeru Singh",
-    Email: "dheeru@rocky.gamil.com",
-    Subject: "Hello this is rishi rawat what can i help you  what you need",
-    status: "Close",
-    LastReply: "20/09/2024",
-  },
-];
+import { getAllTickets } from "../api/packagesAPI";
+import { useSnackbar } from "../Components/SnackbarProvider";
+import { changeTicketStatus, DeleteTicket } from "../api/userAPI";
 
 const AllTicketPage = () => {
+  const { showSnackbar } = useSnackbar();
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [page, setPage] = useState(0);
-  const [openFilterModal, setOpenFilterModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredData, setFilteredData] = useState(transactionData);
+  const [ticketData, setTicketData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
+  const [ticketStats, setTicketStats] = useState({});
   const [selectedRows, setSelectedRows] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState("");
 
+  // Fetch ticket data and stats
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const response = await getAllTickets(); // API call
+        const { stats, ticketDetails } = response.data;
+
+        setTicketStats(stats);
+        setTicketData(ticketDetails);
+        setFilteredData(ticketDetails);
+      } catch (error) {
+        console.error("Error fetching tickets:", error.message);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Handle Search
   const handleSearch = (event) => {
     const query = event.target.value.toLowerCase();
     setSearchQuery(query);
-    const filtered = transactionData.filter((item) =>
-      item.destination.toLowerCase().includes(query)
+    const filtered = ticketData.filter((item) =>
+      item.subject.toLowerCase().includes(query)
     );
     setFilteredData(filtered);
   };
 
   // Handle Pagination
-  const handleChangePage = (newPage) => {
-    setPage(newPage);
-  };
-
+  const handleChangePage = (newPage) => setPage(newPage);
   const handleChangeRowsPerPage = (newRowsPerPage) => {
     setRowsPerPage(newRowsPerPage);
     setPage(0);
@@ -114,7 +74,7 @@ const AllTicketPage = () => {
   // Handle Row Selection
   const handleSelectAll = (event) => {
     if (event.target.checked) {
-      setSelectedRows(filteredData.map((row) => row.id));
+      setSelectedRows(filteredData.map((row) => row.ticketId));
     } else {
       setSelectedRows([]);
     }
@@ -138,9 +98,84 @@ const AllTicketPage = () => {
     setIsModalOpen(false);
     setModalType("");
   };
+
+  // Delete Selected Reviews
+  const handleDeleteSelected = async () => {
+    try {
+      const responses = await Promise.all(
+        selectedRows.map((id) => DeleteTicket(id))
+      );
+      const messages = responses.map(
+        (response) => response?.data?.message || "Ticket deleted successfully."
+      );
+      showSnackbar(messages.join(", "), "success");
+      setSelectedRows([]);
+    } catch (error) {
+      console.error("Error deleting ticket:", error);
+      showSnackbar(
+        error?.response?.data?.message || "Failed to delete selected ticket.",
+        "error"
+      );
+    }
+  };
+
+  // Update Review Status
+  const handleUpdateStatus = async (status) => {
+    try {
+      const responses = await Promise.all(
+        selectedRows.map((id) => changeTicketStatus(id,{  status }))
+      );
+      const messages = responses.map(
+        (response) =>
+          response?.data?.message || "Ticket status updated successfully."
+      );
+      showSnackbar(messages.join(", "), "success");
+
+      setSelectedRows([]);
+    } catch (error) {
+      console.error("Error updating ticker status:", error);
+      showSnackbar(
+        error?.response?.data?.message || "Failed to update Ticket status.",
+        "error"
+      );
+    }
+  };
+
+  // Stats Data
+  const data = [
+    {
+      title: "Open Tickets",
+      value: ticketStats.totalOpenTickets,
+      total: ticketStats.totalTickets,
+      percentage: 84.93,
+      isPositive: true,
+    },
+    {
+      title: "Closed Tickets",
+      value: ticketStats.totalClosedTickets,
+      total: ticketStats.totalTickets,
+      percentage: 15.07,
+      isPositive: false,
+    },
+    {
+      title: "Today's Tickets",
+      value: ticketStats.totalTodaysTickets,
+      total: ticketStats.totalTickets,
+      percentage: 0,
+      isPositive: false,
+    },
+    {
+      title: "Total Tickets",
+      value: ticketStats.totalTickets,
+      total: ticketStats.totalTickets,
+      percentage: 100,
+      isPositive: false,
+    },
+  ];
+
   return (
     <Box>
-      <Box sx={{ border: "10px", my: 2, borderColor: "#888" }} />
+      {/* Statistic Cards */}
       <Grid container spacing={3}>
         {data.map((item, index) => (
           <Grid item xs={12} sm={6} md={3} key={index}>
@@ -155,46 +190,26 @@ const AllTicketPage = () => {
         ))}
       </Grid>
 
-      {/* Search and Actions Table*/}
+      {/* Search and Table */}
       <Box component={Paper} sx={{ bgcolor: "#fff", mt: 4 }}>
         <Box
           sx={{
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
-            marginBottom: 2,
-            p: 1.5,
+            p: 2,
           }}
         >
+          {/* Search Box */}
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <TextField
-              label="Search Destinations"
+              label="Search by Subject"
               variant="standard"
               size="small"
               value={searchQuery}
               onChange={handleSearch}
-              InputProps={{
-                disableUnderline: false,
-              }}
-              sx={{
-                "& .MuiInput-underline:before": {
-                  borderBottomColor: "gray",
-                },
-                "& .MuiInput-underline:after": {
-                  borderBottomColor: "gray",
-                },
-                "& .MuiInput-underline:hover:not(.Mui-disabled):before": {
-                  borderBottomColor: "darkgray",
-                },
-                "& label": {
-                  color: "gray",
-                },
-                "& .MuiInputLabel-root.Mui-focused": {
-                  color: "gray",
-                },
-              }}
             />
-            <Search sx={{ mt: 2.2, color: "gray" }} />
+            <Search sx={{ ml: 1, color: "gray" }} />
           </Box>
 
           <Box>
@@ -214,38 +229,24 @@ const AllTicketPage = () => {
                 <Button
                   variant="contained"
                   sx={{ backgroundColor: "#1976d2", fontSize: "10px" }}
-                //   onClick={() => setOpen(true)}
+                  onClick={() => openModal("status")}
                 >
                   Change Status
                 </Button>
               </>
             ) : (
-              <>
-                <Button
-                  variant="outlined"
-                  startIcon={<FilterList />}
-                  onClick={() => setOpenFilterModal(true)}
-                  sx={{
-                    marginRight: 2,
-                    color: "#888",
-                    borderColor: "#eef0f7",
-                    fontSize: "10px",
-                  }}
-                >
-                  Filter
-                </Button>
-              </>
+              <></>
             )}
           </Box>
         </Box>
 
+        {/* Tickets Table */}
         <TableContainer>
           <Table>
-            <TableHead sx={{ backgroundColor: "#f1f3f5" }}>
+            <TableHead>
               <TableRow>
                 <TableCell padding="checkbox">
                   <Checkbox
-                    sx={{ color: "#888" }}
                     indeterminate={
                       selectedRows.length > 0 &&
                       selectedRows.length < filteredData.length
@@ -254,93 +255,50 @@ const AllTicketPage = () => {
                     onChange={handleSelectAll}
                   />
                 </TableCell>
-                <TableCell sx={{ whiteSpace: "nowrap" }}>Ticket Id</TableCell>
-                <TableCell>User</TableCell>
+                <TableCell>Ticket ID</TableCell>
                 <TableCell>Subject</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Date</TableCell>
+                <TableCell>Created At</TableCell>
+                <TableCell>Last Reply</TableCell>
                 <TableCell>Action</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredData
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => (
-                  <TableRow key={row.id}>
+                .map((ticket) => (
+                  <TableRow key={ticket.ticketId}>
                     <TableCell padding="checkbox">
                       <Checkbox
-                        sx={{ color: "#888" }}
-                        checked={selectedRows.includes(row.id)}
-                        onChange={() => handleSelectRow(row.id)}
+                        checked={selectedRows.includes(ticket.ticketId)}
+                        onChange={() => handleSelectRow(ticket.ticketId)}
                       />
                     </TableCell>
-                    <TableCell>{row.id}</TableCell>
+                    <TableCell>{ticket.ticketId}</TableCell>
+                    <TableCell>{ticket.subject}</TableCell>
+                    <TableCell>{ticket.status}</TableCell>
                     <TableCell>
-                      <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <img
-                          src={first1}
-                          alt={row.packages}
-                          style={{
-                            width: "32px",
-                            height: "32px",
-                            borderRadius: "50%",
-                            marginRight: "8px",
-                          }}
-                        />
-                        <Typography>
-                          {row.TouristName}
-                          <Typography
-                            style={{ color: "#888", fontSize: "12px" }}
-                          >
-                            {" "}
-                            {row.Email}
-                          </Typography>
-                        </Typography>
-                      </Box>
+                      {new Date(ticket.createdAt).toLocaleString()}
                     </TableCell>
                     <TableCell>
-                      <Box
-                        sx={{
-                          width: { sm: "300px", md: "400px" },
-                          overflow: "hidden",
-                          textOverflow: "ellipsis",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        {row.Subject}
-                      </Box>
+                      {ticket.lastReply
+                        ? new Date(ticket.lastReply).toLocaleString()
+                        : "No Replies"}
                     </TableCell>
-
-                    <TableCell>
-                      <Typography
-                        sx={{
-                          display: "inline-block",
-                          backgroundColor: "#d1fae5",
-                          color: "#065f46",
-                          borderRadius: "4px",
-                          padding: "2px 8px",
-                          fontSize: "12px",
-                        }}
-                      >
-                        {row.status}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{row.LastReply}</TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      <Button
-                        variant="outlined"
-                        startIcon={<RemoveRedEyeOutlined />}
-                        component={Link}
-                        to="/admin/support-ticket"
-                        sx={{
-                          color: "#888",
-                          borderColor: "#eef0f7",
-                          fontSize: "10px",
-                          whiteSpace: "nowrap",
-                        }}
-                      >
-                        View
-                      </Button>
+                      <Link to={`/admin/support-ticket/${ticket.ticketId}`}>
+                        <Button
+                          variant="outlined"
+                          startIcon={<RemoveRedEyeOutlined />}
+                          sx={{
+                            color: "#888",
+                            borderColor: "#eef0f7",
+                            fontSize: "10px",
+                          }}
+                        >
+                          View
+                        </Button>
+                      </Link>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -357,8 +315,6 @@ const AllTicketPage = () => {
           onRowsPerPageChange={handleChangeRowsPerPage}
         />
       </Box>
-
- 
 
       {/* Confirmation Modal */}
       <Modal open={isModalOpen} onClose={closeModal}>
@@ -377,54 +333,47 @@ const AllTicketPage = () => {
           <Typography variant="h6" sx={{ mb: 2 }}>
             {modalType === "delete"
               ? "Are you sure you want to delete the selected rows?"
-              : "Are you sure you want to change the status of the selected rows?"}
+              : "Select a status to apply to the selected rows:"}
           </Typography>
-          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-            <Button onClick={closeModal} variant="outlined">
-              Cancel
-            </Button>
-            <Button
-              onClick={closeModal}
-              variant="contained"
-              color={modalType === "delete" ? "error" : "primary"}
-            >
-              Confirm
-            </Button>
-          </Box>
+
+          {modalType === "status" && (
+            <Box sx={{ display: "flex", gap: 2, mb: 2 }}>
+              {["open", "closed"].map((status) => (
+                <Button
+                  key={status}
+                  variant="outlined"
+                  onClick={() => {
+                    handleUpdateStatus(status);
+                    closeModal();
+                  }}
+                >
+                  {status}
+                </Button>
+              ))}
+            </Box>
+          )}
+
+          {modalType === "delete" && (
+            <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
+              <Button onClick={closeModal} variant="outlined">
+                Cancel
+              </Button>
+              <Button
+                onClick={() => {
+                  handleDeleteSelected();
+                  closeModal();
+                }}
+                variant="contained"
+                color="error"
+              >
+                Confirm
+              </Button>
+            </Box>
+          )}
         </Box>
       </Modal>
 
-      {/* Filter Modal */}
-      <Modal
-        open={openFilterModal}
-        onClose={() => setOpenFilterModal(false)}
-        aria-labelledby="filter-modal"
-        aria-describedby="filter-modal-description"
-      >
-        <Box
-          sx={{
-            width: 400,
-            backgroundColor: "#fff",
-            borderRadius: 2,
-            boxShadow: 24,
-            padding: 4,
-            margin: "auto",
-            marginTop: "15vh",
-          }}
-        >
-          <Typography variant="h6" id="filter-modal">
-            Filter Destinations
-          </Typography>
-          <Button
-            onClick={() => setOpenFilterModal(false)}
-            sx={{ marginTop: 2 }}
-            fullWidth
-            variant="contained"
-          >
-            Apply Filter
-          </Button>
-        </Box>
-      </Modal>
+ 
     </Box>
   );
 };

@@ -36,6 +36,9 @@ import { Link, Outlet, useNavigate } from "react-router-dom";
 import ReviewsIcon from "@mui/icons-material/Reviews";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import CircleIcon from "@mui/icons-material/Circle";
+import { useDispatch, useSelector } from "react-redux";
+import { userLogout } from "../redux/slices/authSlice";
+import { logoutServer } from "../api/userAPI";
 
 const navLinks = [
   {
@@ -116,7 +119,7 @@ const navLinks = [
         iconColor: "#f4ddd1",
         sublinks: [
           { text: "All Tickets", link: "/admin/all-tickets" },
-          { text: "Answered Ticket", link: "/admin/answered-ticket" },
+
           { text: "Open Ticket", link: "/admin/open-ticket" },
           { text: "Close Ticket", link: "/admin/close-ticket" },
         ],
@@ -133,7 +136,7 @@ const navLinks = [
         iconColor: "#98c93f",
         sublinks: [
           { text: "All Users", link: "/admin/all-users" },
-          { text: "Mailed Users", link: "/admin/mail-users" },
+        
         ],
       },
     ],
@@ -165,11 +168,9 @@ export const LoadingFallback = () => (
   </Box>
 );
 
-const Layout = ({
-  imageUrl,
-  userName = "User Name",
-  userEmail = "user@example.com",
-}) => {
+const Layout = () => {
+  const dispatch = useDispatch();
+  const { email, name, userId } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -181,7 +182,7 @@ const Layout = ({
 
   const handleMenuCloseAndNavigate = () => {
     handleMenuClose();
-    navigate("/admin/profile");
+    navigate(`/admin/profile/${userId}`);
   };
 
   // Menu handlers
@@ -193,14 +194,7 @@ const Layout = ({
     setAnchorEl(null);
   };
 
-  // Extract initials for fallback avatar
-  const getInitials = (name) => {
-    const initials = name
-      .split(" ")
-      .map((word) => word[0])
-      .join("");
-    return initials.toUpperCase();
-  };
+
 
   useEffect(() => {
     // Get the last visited link from localStorage or default to "Dashboard"
@@ -442,6 +436,13 @@ const Layout = ({
     setCurrentRoute(uppercaseRoute || "DASHBOARD");
   }, [window.location.pathname]);
 
+
+   const handleLogout = () => {
+      dispatch(userLogout());
+      logoutServer();
+      setAnchorEl(null);
+    };
+
   return (
     <Box sx={{ display: "flex" }}>
       <CssBaseline />
@@ -533,11 +534,10 @@ const Layout = ({
           <Box sx={{ position: "relative", display: "inline-block" }}>
             <IconButton onClick={handleMenuOpen}>
               <Avatar
-                src={imageUrl}
-                alt={userName}
+               
                 sx={{ width: 40, height: 40 }}
               >
-                {!imageUrl && getInitials(userName)}
+                {!name}
               </Avatar>
             </IconButton>
             <CircleIcon
@@ -576,18 +576,17 @@ const Layout = ({
               }}
             >
               <Avatar
-                src={imageUrl}
-                alt={userName}
+                
                 sx={{ width: 45, height: 45 }}
               >
-                {!imageUrl && getInitials(userName)}
+                {!name}
               </Avatar>
               <Box>
                 <Typography variant="subtitle1" fontWeight="bold">
-                  {userName}
+                  {name}
                 </Typography>
                 <Typography variant="body2" color="textSecondary">
-                  {userEmail}
+                  {email}
                 </Typography>
               </Box>
             </Box>
@@ -596,7 +595,7 @@ const Layout = ({
 
             <MenuItem onClick={handleMenuCloseAndNavigate}>Profile</MenuItem>
 
-            <MenuItem onClick={handleMenuClose}>Logout</MenuItem>
+            <MenuItem onClick={handleLogout}>Logout</MenuItem>
           </Menu>
         </Toolbar>
       </AppBar>

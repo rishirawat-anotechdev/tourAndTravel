@@ -15,7 +15,7 @@ import {
   getTicketChat,
   createTicketChat,
   closeTicket,
-} from "../api/dashboardApi";
+} from "../api/userAPI";
 import { useSnackbar } from "./SnackbarProvider";
 
 const SupportTicketChat = () => {
@@ -28,9 +28,14 @@ const SupportTicketChat = () => {
     const fetchMessages = async () => {
       try {
         const response = await getTicketChat(ticketId);
+        console.log(response);
+        
         setMessages(response.data.messages);
       } catch (error) {
-        console.error("Error fetching ticket chat messages:", error);
+        showSnackbar(
+          error.response?.data?.error || "Failed to get the ticket chat!",
+          "error"
+        );
       }
     };
 
@@ -76,7 +81,7 @@ const SupportTicketChat = () => {
   };
 
   return (
-    <Box display="flex" flexDirection="column" bgcolor="background.paper">
+    <Box display="flex" flexDirection="column" bgcolor="#fff">
       <Box
         sx={{
           p: 2,
@@ -106,14 +111,14 @@ const SupportTicketChat = () => {
             key={msg.id}
             sx={{
               display: "flex",
-              justifyContent: msg.role === "user" ? "flex-end" : "flex-start",
+              justifyContent: msg.role === "user" ? "flex-start" : "flex-end",
               mb: 1,
             }}
           >
             <Paper
               sx={{
                 p: 1.5,
-                bgcolor: msg.role === "user" ? "#d1f7c4" : "#fff",
+                bgcolor: msg.role === "user" ? "#fff" :"#d1f7c4",
                 borderRadius: "10px",
                 maxWidth: "70%",
               }}
@@ -123,7 +128,7 @@ const SupportTicketChat = () => {
                 variant="caption"
                 color="textSecondary"
                 display="block"
-               textAlign="left"
+                textAlign="left"
               >
                 {msg.senderName} |{" "}
                 {new Date(msg.createdAt).toLocaleTimeString("en-US", {
@@ -140,7 +145,7 @@ const SupportTicketChat = () => {
         sx={{
           display: "flex",
           p: 2,
-          bgcolor: "#f6faff",
+          bgcolor: "#fff",
           borderTop: "1px solid #eee",
         }}
       >

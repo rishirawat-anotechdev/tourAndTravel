@@ -10,7 +10,6 @@ export const getFavourite = async (userId) => {
 };
 
 export const addFavourite = async (userId, packageId) => {
-  
   try {
     const response = await baseurl.post(
       `/favourite`,
@@ -21,8 +20,6 @@ export const addFavourite = async (userId, packageId) => {
     );
     return response.data;
   } catch (error) {
-   
-    
     throw error;
   }
 };

@@ -9,6 +9,7 @@ import {
 import deleteImageFromCloudinary from "../helper/deleteImage.js";
 import uploadImageToCloudinary from "../helper/uploadImageToCloudinary.js";
 
+
 const generateOTP = () =>
   Math.floor(100000 + Math.random() * 900000).toString();
 
@@ -215,7 +216,7 @@ export const forgotPassword = async (req, res) => {
 // OTP Verification Controller
 export const verifyOTP = async (req, res) => {
   const { email, otp } = req.body;
-  
+
   if (!email || !otp) {
     return res.status(400).json({ msg: "Email and OTP are required." });
   }
@@ -365,37 +366,50 @@ export const getUserDetailsById = async (req, res) => {
   try {
     const { userId } = req.params;
 
-    // Query user details excluding the password
-    const user = await User.findById(userId).select("-password");
+    if (userId) {
+      // Query specific user details excluding the password
+      const user = await User.findById(userId).select("-password");
 
-    if (!user) {
-      return res.status(404).json({
-        success: false,
-        message: "User not found",
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: "User not found",
+        });
+      }
+
+      // Ensure all nested fields have sensible defaults
+      const userData = {
+        ...user.toObject(),
+        address: {
+          homeNo: user.address?.homeNo || "",
+          colony: user.address?.colony || "",
+          landmark: user.address?.landmark || "",
+          pincode: user.address?.pincode || "",
+          city: user.address?.city || "",
+          state: user.address?.state || "",
+        },
+        profilePic: user.profilePic || null,
+      };
+
+      return res.status(200).json({
+        success: true,
+        data: userData,
+      });
+    } else {
+      // Get the total number of users
+      const totalUsers = await User.countDocuments();
+
+      // Get all users excluding passwords
+      const users = await User.find().select("-password");
+
+      return res.status(200).json({
+        success: true,
+        totalUsers,
+        users,
       });
     }
-
-    // Ensure all nested fields have sensible defaults
-    const userData = {
-      ...user.toObject(),
-      address: {
-        homeNo: user.address?.homeNo || "",
-        colony: user.address?.colony || "",
-        landmark: user.address?.landmark || "",
-        pincode: user.address?.pincode || "",
-        city: user.address?.city || "",
-        state: user.address?.state || "",
-      },
-      profilePic: user.profilePic || null,
-    };
-
-    // Respond with user details
-    return res.status(200).json({
-      success: true,
-      data: userData,
-    });
   } catch (error) {
-    console.error("Error fetching user details:", error);
+    console.error("Error fetching users:", error);
     return res.status(500).json({
       success: false,
       message: "Internal server error",
@@ -406,29 +420,26 @@ export const getUserDetailsById = async (req, res) => {
 export const updateUserProfile = async (req, res) => {
   try {
     const { userId } = req.params;
-    const { firstname, lastname, phonenumber, address } = req.body;
+    const { firstname, lastname, phonenumber, address, status } = req.body;
 
-
-   
     let parsedAddress = address ? JSON.parse(address) : null;
 
     let updatedFields = {
       firstname,
       lastname,
       phonenumber,
+      status,
     };
 
     updatedFields = Object.fromEntries(
       Object.entries(updatedFields).filter(([_, value]) => value !== undefined)
     );
 
- 
     const user = await User.findById(userId).exec();
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
 
-    
     if (parsedAddress) {
       updatedFields.address = {
         ...(user.address ? user.address.toObject() : {}),
@@ -436,28 +447,23 @@ export const updateUserProfile = async (req, res) => {
       };
     }
 
-    
     if (req.files && req.files.profilePic) {
       const profilePicFile = req.files.profilePic;
 
-    
       if (user.profilePic) {
         await deleteImageFromCloudinary(user.profilePic);
       }
 
-    
       const uploadedImageUrl = await uploadImageToCloudinary(profilePicFile);
       updatedFields.profilePic = uploadedImageUrl;
     }
 
-  
     const updatedUser = await User.findByIdAndUpdate(
       userId,
       { $set: updatedFields },
       { new: true, runValidators: true }
-    ).select("-password");  
+    ).select("-password");
 
- 
     res.status(200).json({
       success: true,
       message: "Profile updated successfully",
@@ -472,7 +478,6 @@ export const updateUserProfile = async (req, res) => {
     });
   }
 };
-
 
 export const changePassword = async (req, res) => {
   const { userId } = req.params;
@@ -495,7 +500,9 @@ export const changePassword = async (req, res) => {
 
     // Check if the new password is different from the current password
     if (currentPassword === newPassword) {
-      return res.status(400).json({ message: "New password cannot be the same as the current password." });
+      return res.status(400).json({
+        message: "New password cannot be the same as the current password.",
+      });
     }
 
     // Hash the new password
@@ -510,5 +517,128 @@ export const changePassword = async (req, res) => {
   } catch (error) {
     console.error("Error changing password:", error);
     res.status(500).json({ message: "Internal server error." });
+  }
+};
+
+export const getAllUsers = async (req, res) => {
+  try {
+    const currentDate = new Date();
+
+    // Start and end of today
+    const startOfDay = new Date(currentDate.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(currentDate.setHours(23, 59, 59, 999));
+
+    // Fetch all users from the database
+    const users = await User.find();
+
+    // Count total users
+    const totalUsers = await User.countDocuments();
+
+    // Count total active users
+    const totalActiveUsers = await User.countDocuments({ status: "active" });
+
+    // Count total deactivated users
+    const totalDeactivatedUsers = await User.countDocuments({
+      status: "deactived",
+    });
+
+    // Count today's joined users
+    const totalTodayJoinedUsers = await User.countDocuments({
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
+    });
+
+    // Send a response with the users and statistics
+    res.status(200).json({
+      success: true,
+      message: "Users retrieved successfully.",
+      stats: {
+        totalUsers,
+        totalActiveUsers,
+        totalDeactivatedUsers,
+        totalTodayJoinedUsers,
+      },
+      data: users.map((user) => ({
+        id: user._id,
+        firstname: user.firstname,
+        lastname: user.lastname,
+        username: user.username,
+        email: user.email,
+        phonenumber: user.phonenumber,
+        profilePic: user.profilePic,
+        role: user.role,
+        isVerified: user.isVerified,
+        status: user.status,
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      })),
+    });
+  } catch (error) {
+    console.error("Error fetching users:", error);
+
+    // Handle invalid ObjectId error
+    if (error.name === "CastError" && error.kind === "ObjectId") {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid ID format.",
+        error: error.message,
+      });
+    }
+
+    // General error response
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch users.",
+      error: error.message,
+    });
+  }
+};
+
+// ////////////////////admin API controllers/////////////////////
+
+// Delete a user by their ID
+export const deleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Check if the user exists
+    const user = await User.findOneAndDelete(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+
+    res
+      .status(200)
+      .json({ message: "User and associated data deleted successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
+  }
+};
+
+// Update the status of a user by their ID
+export const updateUserStatus = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { status } = req.body;
+
+    // Validate the status
+    if (!["active", "deactived"].includes(status)) {
+      return res.status(400).json({ message: "Invalid status value" });
+    }
+
+    // Find the user and update the status
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.status = status;
+    await user.save();
+
+    res.status(200).json({ message: "User status updated successfully", user });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server error" });
   }
 };

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import {
   Card,
   CardContent,
@@ -35,6 +35,7 @@ import {
 } from "@mui/icons-material";
 
 import EditIcon from "@mui/icons-material/Edit";
+import { getAllUsers, getTickets } from "../api/dashboardAPI";
 
 ChartJS.register(
   CategoryScale,
@@ -151,6 +152,10 @@ const fakeData = [
 ];
 
 const DashboardPage = () => {
+  const [userTicket, setTicketData] = useState(fakeData);
+  const [userCardData, setUserCardData] = useState([]);
+  const [userData, setUserData] = useState([]);
+
   const data = {
     labels: [
       "Day 01",
@@ -216,17 +221,32 @@ const DashboardPage = () => {
     },
   };
 
+  useEffect(() => {
+    const getTicketsData = async () => {
+      try {
+        const tickets = await getTickets();
+        const user = await getAllUsers();
+        setUserCardData(user.data.stats);
+        setUserData(user.data.data);
+        setTicketData(tickets.data);
+      } catch (error) {
+        console.log(error.message);
+      }
+    };
+    getTicketsData();
+  }, []);
+
   const stats = [
     {
       title: "Total Users",
-      value: 32,
+      value: userCardData?.totalUsers || 0,
       icon: <Person />,
       change: "0%",
       from: "32",
     },
     {
-      title: "Pending Tickets",
-      value: 62,
+      title: "Open Tickets",
+      value: userTicket?.counts?.open || 0,
       icon: <Comment />,
       change: "-100%",
       from: "73",
@@ -453,23 +473,23 @@ const DashboardPage = () => {
               <TableRow>
                 <TableCell>Full Name</TableCell>
                 <TableCell>Email-Phone</TableCell>
-                <TableCell>Balance</TableCell>
-                <TableCell>Country</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Last Login</TableCell>
                 <TableCell>Action</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {fakeData.map((user, index) => (
+              {userData?.map((user, index) => (
                 <TableRow key={index}>
                   <TableCell>
                     <Box sx={{ display: "flex", alignItems: "center" }}>
                       <Avatar sx={{ marginRight: "8px" }}>
-                        {user.fullName.charAt(0)}
+                        {user.username.charAt(0)}
                       </Avatar>
                       <Box>
-                        <Typography variant="body1">{user.fullName}</Typography>
+                        <Typography variant="body1">
+                          {user.firstname + " " + user.lastname}
+                        </Typography>
                         <Typography variant="body2" color="textSecondary">
                           {user.username}
                         </Typography>
@@ -479,11 +499,9 @@ const DashboardPage = () => {
                   <TableCell>
                     <Typography variant="body1">{user.email}</Typography>
                     <Typography variant="body2" color="textSecondary">
-                      {user.phone}
+                      {user.phonenumber}
                     </Typography>
                   </TableCell>
-                  <TableCell>{user.balance}</TableCell>
-                  <TableCell>{user.country}</TableCell>
                   <TableCell>
                     <Box
                       sx={{
@@ -498,7 +516,16 @@ const DashboardPage = () => {
                       {user.status}
                     </Box>
                   </TableCell>
-                  <TableCell>{user.lastLogin}</TableCell>
+                  <TableCell>
+                    {new Date(user.updatedAt).toLocaleString("en-GB", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </TableCell>
+
                   <TableCell>
                     <Box sx={{ display: "flex", alignItems: "center" }}>
                       <Button

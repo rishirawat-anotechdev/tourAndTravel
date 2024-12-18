@@ -8,6 +8,12 @@ const testimonialSchema = new mongoose.Schema(
       required: true,
       index: true, 
     },
+    packageId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Package',
+      required: true,
+      index: true, 
+    },
     comment: {
       type: String,
       required: true,

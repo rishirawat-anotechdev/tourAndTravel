@@ -26,7 +26,7 @@ export const addChatMessage = async (req, res) => {
 export const getChatMessages = async (req, res) => {
   try {
     const { ticketId } = req.params;
-    const { id: userId } = req.user; // Logged-in user ID
+    const { id: userId } = req.user; 
 
     // Verify the ticket belongs to the user
     const ticket = await Ticket.findOne({ _id: ticketId, userId });

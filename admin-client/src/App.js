@@ -22,18 +22,22 @@ import AllTicketPage from './Pages/AllTicketsPage'
 import AnsweredTicketPage from './Pages/AsnweredTicketPage'
 import OpenTicketPage from './Pages/OpenTicketPage'
 import CloseTicketPage from './Pages/CloseTicketPage'
-import SupportTicket from './Pages/SupportTicket'
 import AllUserPage from './Pages/AllUserPage'
 import UserProfilePage from './Pages/UserProfilePage'
 import SettingsPage from './Pages/SettingsPage'
 import AdminProfile from './Components/AdminProfile'
+import SignInPage from './Pages/SigninPage'
+import EditPackageCategoryForm from './Pages/EditPackageCategoryForm'
+import AddTourMapForm from './Components/AddTourMapForm'
+import EditPackageForm from './Components/EditPackageForm'
+import SupportTicketChat from './Components/SupportTicketChat'
 
 const App = () => {
   return (
     <>
     <Routes>
      <Route  path="/admin" element={<LayoutPage />}>
-      <Route path="dashboard" element={<DashboardPage />}/>
+      <Route index path="dashboard" element={<DashboardPage />}/>
       <Route path="destinations" element={<DestinationPage />}/>
       <Route path="add-destination" element={<AddDestinationForm />}/>
       <Route path="package-category" element={<PackageCategory />}/>
@@ -55,12 +59,16 @@ const App = () => {
       <Route path="Answered-tickets" element={<AnsweredTicketPage />}/>
       <Route path="open-ticket" element={<OpenTicketPage />}/>
       <Route path="close-ticket" element={<CloseTicketPage />}/>
-      <Route path="support-ticket" element={<SupportTicket />}/>
+      <Route path="support-ticket/:ticketId" element={<SupportTicketChat />}/>
       <Route path="all-users" element={<AllUserPage />}/>
-      <Route path="profile/:id/user" element={<UserProfilePage />}/>
+      <Route path="profile/:userId/user" element={<UserProfilePage />}/>
       <Route path="settings" element={<SettingsPage />}/>
-      <Route path="profile" element={<AdminProfile />}/>
+      <Route path="profile/:userId" element={<AdminProfile />}/>
+      <Route path="add-tour-map" element={<AddTourMapForm />}/>
+      <Route path="edit-package-form/:packageId" element={<EditPackageForm />}/>
+      <Route path="edit-package-category/:categoryId" element={<EditPackageCategoryForm />}/>
     </Route>
+    <Route path="/signin" element={<SignInPage />}/>
     
   
     </Routes>

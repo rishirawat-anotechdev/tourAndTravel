@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Typography,
@@ -15,48 +15,68 @@ import {
   InputAdornment,
   FormControlLabel,
   Checkbox,
-  MenuItem,
 } from "@mui/material";
 import MenuIcon from "@mui/icons-material/Menu";
-import EditIcon from "@mui/icons-material/Edit";
+
 import img1 from "../assets/img1.jpg";
-import AccountBoxOutlinedIcon from '@mui/icons-material/AccountBoxOutlined';
-import EmailOutlinedIcon from '@mui/icons-material/EmailOutlined';
-import VpnKeyOutlinedIcon from '@mui/icons-material/VpnKeyOutlined';
-import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import MoreVertIcon from "@mui/icons-material/MoreVert";
-import { Visibility, VisibilityOff } from "@mui/icons-material";
+import AccountBoxOutlinedIcon from "@mui/icons-material/AccountBoxOutlined";
+
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+
+import { useParams } from "react-router-dom";
+import { getUserProfile, deleteUser } from "../api/userAPI";
+import LoaderPage from "../Components/LoaderPage";
+import { useSnackbar } from "../Components/SnackbarProvider";
 
 const sections = [
-  { id: "basic-info", label: "Basic Information", icon: <AccountBoxOutlinedIcon /> },
-  { id: "email", label: "Email", icon: <EmailOutlinedIcon /> },
-  { id: "username", label: "Username", icon: <AccountBoxOutlinedIcon /> },
-  { id: "password", label: "Password", icon: <VpnKeyOutlinedIcon /> },
-  { id: "delete-account", label: "Delete Account", icon: <DeleteOutlineIcon /> },
+  {
+    id: "basic-info",
+    label: "Basic Information",
+    icon: <AccountBoxOutlinedIcon />,
+  },
+  {
+    id: "delete-account",
+    label: "Delete Account",
+    icon: <DeleteOutlineIcon />,
+  },
 ];
 
 const UserProfilePage = () => {
-  // State for controlling the stack visibility
+  const { showSnackbar } = useSnackbar();
+  const { userId } = useParams();
   const [showStack, setShowStack] = useState(false);
   const [showPassword, setShowPassword] = React.useState(false);
   const [checked, setChecked] = useState(false);
   const [anchorEl, setAnchorEl] = useState(null);
-  const [status, setStatus] = useState(true);
+  const [userProfile, setUserProfile] = useState(null);
 
-  // Handle opening the menu
-  const handleMenuClick = (event) => {
-    setAnchorEl(event.currentTarget);
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      try {
+        const response = await getUserProfile(userId);
+        console.log(response.data.data);
+
+        setUserProfile(response.data);
+      } catch (error) {
+        console.log(error);
+      }
+    };
+    fetchUserDetails();
+  }, [userId]);
+
+  const handleDeleteAccount = async () => {
+    try {
+      await deleteUser(userId);
+      showSnackbar("Account deleted successfully.", "success");
+      // Optionally, redirect to another page after deletion
+    } catch (error) {
+      showSnackbar("Failed to delete account.", "error");
+    }
   };
 
-  // Handle closing the menu
-  const handleMenuClose = () => {
-    setAnchorEl(null);
-  };
-
-  // Handle changing status
   const handleStatusChange = (newStatus) => {
-    setStatus(newStatus);
-    handleMenuClose();
+    // You can integrate status update logic here if needed
+    setAnchorEl(null);
   };
 
   const handleCheckboxChange = (event) => {
@@ -67,11 +87,12 @@ const UserProfilePage = () => {
     setShowPassword(!showPassword);
   };
 
-  // Scroll to the related section
   const handleScroll = (id) => {
     document.getElementById(id).scrollIntoView({ behavior: "smooth" });
     setShowStack(false);
   };
+
+  if (!userProfile) return <LoaderPage />;
 
   return (
     <Grid container spacing={2}>
@@ -155,7 +176,6 @@ const UserProfilePage = () => {
                 whiteSpace: "nowrap",
                 textDecoration: "none",
                 color: "#000",
-              
                 display: "flex",
                 alignItems: "center",
                 gap: 1,
@@ -183,7 +203,6 @@ const UserProfilePage = () => {
               height: "160px",
               borderRadius: "10px",
               position: "relative",
-
               mb: 8,
             }}
           >
@@ -217,7 +236,9 @@ const UserProfilePage = () => {
               }}
             >
               <img
-                src="https://via.placeholder.com/100"
+                src={
+                  userProfile.profilePic || "https://via.placeholder.com/100"
+                }
                 alt="Profile Placeholder"
                 style={{
                   width: "100%",
@@ -226,21 +247,6 @@ const UserProfilePage = () => {
                   borderRadius: "50%",
                 }}
               />
-              {/* Edit Icon */}
-              <IconButton
-                sx={{
-                  position: "absolute",
-                  bottom: "4px",
-                  right: "4px",
-                  backgroundColor: "#ffffff",
-                  boxShadow: "0 2px 4px rgba(0, 0, 0, 0.2)",
-                  "&:hover": {
-                    backgroundColor: "#e0e0e0",
-                  },
-                }}
-              >
-                <EditIcon sx={{ fontSize: "16px", color: "#000" }} />
-              </IconButton>
             </Box>
           </Box>
 
@@ -250,7 +256,6 @@ const UserProfilePage = () => {
               id={section.id}
               sx={{
                 marginBottom: 4,
-
                 borderRadius: 2,
                 boxShadow: "0 2px 4px rgba(0, 0, 0, 0.1)",
                 backgroundColor: "#ffffff",
@@ -277,189 +282,50 @@ const UserProfilePage = () => {
                     p: 1,
                   }}
                 >
-                  <Box sx={{ display: "flex", gap: 2 }}>
-                    <TextField
-                      label="First Name"
-                      fullWidth
-                      defaultValue="Rishi"
-                    />
-                    <TextField
-                      label="Last Name"
-                      fullWidth
-                      defaultValue="Rawat"
-                    />
-                  </Box>
+                  <TextField
+                    label="First Name"
+                    fullWidth
+                    value={userProfile.firstname}
+                    disabled
+                  />
+                  <TextField
+                    label="Last Name"
+                    fullWidth
+                    value={userProfile.lastname}
+                    disabled
+                  />
                   <TextField
                     label="Phone"
                     fullWidth
-                    defaultValue="8273147793"
-                  />
-                  <TextField label="Country" fullWidth defaultValue="India" />
-                  <Box sx={{ display: "flex", gap: 2 }}>
-                    <TextField label="City" fullWidth />
-                    <TextField label="State" fullWidth />
-                    <TextField label="Zip Code" fullWidth />
-                  </Box>
-                  <TextField label="Address Line 1" fullWidth />
-                  <TextField label="Address Line 2" fullWidth />
-                  <Box sx={{ display: "flex", alignItems: "center", gap: 2 }}>
-                    <Typography>Status</Typography>
-                    <Switch
-                      checked={status}
-                      onChange={(e) => setStatus(e.target.checked)}
-                    />
-                    <IconButton onClick={handleMenuClick}>
-                      <MoreVertIcon />
-                    </IconButton>
-
-                    {/* Status Menu */}
-                    <Menu
-                      anchorEl={anchorEl}
-                      open={Boolean(anchorEl)}
-                      onClose={handleMenuClose}
-                    >
-                      <MenuItem onClick={() => handleStatusChange(true)}>
-                        Activate User
-                      </MenuItem>
-                      <MenuItem onClick={() => handleStatusChange(false)}>
-                        Deactivate User
-                      </MenuItem>
-                    </Menu>
-                  </Box>
-                  <Button
-                    variant="contained"
-                    sx={{ width: "150px", bgcolor: "#377dff" }}
-                  >
-                    Save Changes
-                  </Button>
-                </Box>
-              )}
-              {section.id === "email" && (
-                <Box
-                  sx={{
-                    px: 2,
-                  }}
-                >
-                  <Typography variant="body2" sx={{ mb: 2 }}>
-                    Your current email address is rawatrishi390@gmail.com
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    label="New email address"
-                    variant="outlined"
-                    size="small"
-                  />
-                  <Button
-                    variant="contained"
-                    sx={{
-                      mt: 2,
-                      textTransform: "none",
-                      width: "150px",
-                      bgcolor: "#377dff",
-                      mb: 2,
-                    }}
-                    size="large"
-                  >
-                    Save changes
-                  </Button>
-                </Box>
-              )}
-              {section.id === "username" && (
-                <Box
-                  sx={{
-                    px: 2,
-                  }}
-                >
-                  <Typography variant="body2" sx={{ mb: 2 }}>
-                    Your current username is @rishi_rawat
-                  </Typography>
-                  <TextField
-                    fullWidth
-                    label="New Username"
-                    variant="outlined"
-                    size="small"
-                  />
-                  <Button
-                    variant="contained"
-                    sx={{
-                      mt: 2,
-                      textTransform: "none",
-                      width: "150px",
-                      bgcolor: "#377dff",
-                      mb: 2,
-                    }}
-                    size="large"
-                  >
-                    Save changes
-                  </Button>
-                </Box>
-              )}
-              {section.id === "password" && (
-                <Box
-                  sx={{
-                    px: 2,
-                  }}
-                >
-                  <TextField
-                    fullWidth
-                    label="New password"
-                    variant="outlined"
-                    size="small"
-                    type={showPassword ? "text" : "password"}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton onClick={handleTogglePasswordVisibility}>
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
+                    value={userProfile.phonenumber}
+                    disabled
                   />
                   <TextField
+                    label="Email"
                     fullWidth
-                    label="Confirm new password"
-                    variant="outlined"
-                    size="small"
-                    type={showPassword ? "text" : "password"}
-                    sx={{ mb: 2 }}
-                    InputProps={{
-                      endAdornment: (
-                        <InputAdornment position="end">
-                          <IconButton onClick={handleTogglePasswordVisibility}>
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      ),
-                    }}
+                    value={userProfile.email}
+                    disabled
                   />
-                  <Button
-                    variant="contained"
-                    sx={{
-                      mt: 2,
-                      textTransform: "none",
-                      width: "150px",
-                      bgcolor: "#377dff",
-                      mb: 2,
-                    }}
-                    size="large"
-                  >
-                    Save Changes
-                  </Button>
+                  <TextField
+                    label="Role"
+                    fullWidth
+                    value={userProfile.role}
+                    disabled
+                  />
+                  <TextField
+                    label="Status"
+                    fullWidth
+                    value={userProfile.status}
+                    disabled
+                  />
                 </Box>
               )}
               {section.id === "delete-account" && (
-                <Box
-                  sx={{
-                    px: 2,
-                  }}
-                >
-                  {/* Description */}
+                <Box sx={{ px: 2 }}>
                   <Typography variant="body2" sx={{ mb: 3 }}>
-                    When you delete your account, you lose access to Front
-                    account services, and we permanently delete your personal
-                    data. You can cancel the deletion for 14 days.
+                    When you delete User account, user lose access to the
+                    services, and user data will be permanently deleted. You can
+                    cancel the deletion within 14 days.
                   </Typography>
 
                   {/* Checkbox */}
@@ -480,8 +346,9 @@ const UserProfilePage = () => {
                     color="error"
                     disabled={!checked}
                     sx={{ mt: 2, textTransform: "none", width: "150px", mb: 2 }}
+                    onClick={handleDeleteAccount}
                   >
-                    Delete
+                    Delete Account
                   </Button>
                 </Box>
               )}

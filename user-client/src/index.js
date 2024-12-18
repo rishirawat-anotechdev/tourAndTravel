@@ -21,7 +21,7 @@ const suppressResizeObserverError = () => {
 suppressResizeObserverError();
 
 const theme = createTheme({
-  // You can customize your theme here
+
   palette: {
     primary: {
       main: '#147d78',

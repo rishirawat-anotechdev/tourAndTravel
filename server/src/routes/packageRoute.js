@@ -1,5 +1,5 @@
 import express from "express";
-import { createPackage, deletePackage, getPackages, getSearchResults, getTopDestinations, updatePackage } from "../controllers/packageController.js";
+import { createPackage, deletePackage, getAllPackages, getPackages, getPackagesByDestination, getSearchResults, getTopDestinations, updatePackage } from "../controllers/packageController.js";
 import { createTourMap, deleteTourMap, getTourMaps, updateTourMap } from "../controllers/tourController.js";
 import { verifyRole, verifyToken } from "../middleware/authMiddleware.js";
 
@@ -12,13 +12,20 @@ const router = express.Router();
 router.post("/",verifyToken, verifyRole("admin"), createPackage);
 router.get("/", getPackages);
 router.get("/destinations", getTopDestinations);
-router.put("/:id",verifyToken, verifyRole("admin"), updatePackage);
-router.delete("/:id", verifyToken, verifyRole("admin"), deletePackage);
 router.get("/search", getSearchResults);
 
+// admin routes
+router.get("/allData", getPackagesByDestination);
+router.get("/getAllPackages", getAllPackages);
+router.put("/:id",verifyToken, verifyRole("admin"), updatePackage);
+router.delete("/:id", verifyToken, verifyRole("admin"), deletePackage);
+
+
 // Tour Map routes
-router.post("/tour-maps",verifyToken, verifyRole("admin"), createTourMap);
 router.get("/tour-maps", getTourMaps);
+
+// admin routes for Tour Map
+router.post("/tour-maps",verifyToken, verifyRole("admin"), createTourMap);
 router.put("/tour-maps/:id", verifyToken, verifyRole("admin"), updateTourMap);
 router.delete("/tour-maps/:id", verifyToken, verifyRole("admin"), deleteTourMap);
 

@@ -14,11 +14,12 @@ import GoogleIcon from "@mui/icons-material/Google";
 import FacebookIcon from "@mui/icons-material/Facebook";
 import AppleIcon from "@mui/icons-material/Apple";
 import signin from "../assets/signin.webp";
-import { useSnackbar } from "../components/SnackbarProvider";
-import { login } from "../api/auth";
+import { useSnackbar } from "../Components/SnackbarProvider";
+
 import { useDispatch } from "react-redux";
 import { userLogin } from "../redux/slices/authSlice";
 import { useNavigate } from "react-router-dom";
+import { login } from "../api/userAPI";
 
 const SignInPage = () => {
   const navigate = useNavigate();
@@ -51,22 +52,21 @@ const SignInPage = () => {
         formData.username,
         formData.password
       );
-      
+
       // Dispatch user login action if successful
       dispatch(userLogin({ userId, token, name, email }));
-      
+
       // Show success message
       showSnackbar(msg || "Logged in successfully!", "success");
-      
+
       // Navigate to home page only if login is successful
-      navigate("/");
+      navigate("/admin/dashboard");
     } catch (error) {
       const errorMessage =
-        error.response?.data?.msg || "Invalid credentials. Please try again.";  
-      showSnackbar(errorMessage, "error");  
+        error.response?.data?.msg || "Invalid credentials. Please try again.";
+      showSnackbar(errorMessage, "error");
     }
   };
-  
 
   return (
     <Box

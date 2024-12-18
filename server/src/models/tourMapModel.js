@@ -37,11 +37,6 @@ const tourMapsSchema = new mongoose.Schema(
         ref: "Package", 
         required: true, 
       },
-      categoryId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Category",
-        required: true
-      }
     },
     { timestamps: true } 
   );

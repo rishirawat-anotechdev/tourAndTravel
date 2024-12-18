@@ -58,8 +58,7 @@ const packagesSchema = new mongoose.Schema(
       index: true,
     },
     overview: {
-      type: Object, 
-      
+      type: Object,  
     },
     startDate: {
       type: Date,

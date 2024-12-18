@@ -50,6 +50,8 @@ const PackageDetails = () => {
       try {
       
         const data = await getPackageDetail(packageId);
+
+        
         setPackageDetails(data);
 
         // Ensure images array exists and is not empty

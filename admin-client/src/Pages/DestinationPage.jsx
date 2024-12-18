@@ -15,144 +15,78 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import StatisticCard from "../Components/StatisticCard";
 import { Add, Edit, FilterList, Search } from "@mui/icons-material";
 import first1 from "../assets/first1.jpg";
 import CustomPagination from "../Components/CustomPagination";
 import { Link } from "react-router-dom";
-
-const destinationsData = [
-  {
-    id: 1,
-    destination: "Saint Martin",
-    packages: 3,
-    status: "Active",
-    createdAt: "05/09/2024",
-  },
-  {
-    id: 2,
-    destination: "Ibiza",
-    packages: 3,
-    status: "Active",
-    createdAt: "04/09/2024",
-  },
-  {
-    id: 3,
-    destination: "Madrid",
-    packages: 3,
-    status: "Active",
-    createdAt: "04/09/2024",
-  },
-  {
-    id: 4,
-    destination: "Morocco",
-    packages: 2,
-    status: "Active",
-    createdAt: "08/08/2024",
-  },
-  {
-    id: 5,
-    destination: "Vienna",
-    packages: 1,
-    status: "Active",
-    createdAt: "26/07/2024",
-  },
-  {
-    id: 6,
-    destination: "Paris",
-    packages: 1,
-    status: "Active",
-    createdAt: "26/07/2024",
-  },
-  {
-    id: 7,
-    destination: "Milan",
-    packages: 1,
-    status: "Active",
-    createdAt: "25/07/2024",
-  },
-  {
-    id: 8,
-    destination: "Dhaka",
-    packages: 2,
-    status: "Active",
-    createdAt: "25/07/2024",
-  },
-  {
-    id: 9,
-    destination: "Athens",
-    packages: 1,
-    status: "Active",
-    createdAt: "15/07/2024",
-  },
-  {
-    id: 10,
-    destination: "Bhutan",
-    packages: 1,
-    status: "Active",
-    createdAt: "15/07/2024",
-  },
-];
-
-const data = [
-  {
-    title: "Active Destination",
-    value: 14,
-    total: 14,
-    percentage: 100,
-    isPositive: true,
-  },
-  {
-    title: "Inactive Destination",
-    value: 0,
-    total: 14,
-    percentage: 0,
-    isPositive: false,
-  },
-  {
-    title: "Created by Today",
-    value: 0,
-    total: 14,
-    percentage: 0,
-    isPositive: false,
-  },
-  {
-    title: "Created This Month",
-    value: 0,
-    total: 14,
-    percentage: 0,
-    isPositive: false,
-  },
-];
+import { getDestinationPackages } from "../api/dashboardAPI";
 
 const DestinationPage = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [page, setPage] = useState(0);
   const [openFilterModal, setOpenFilterModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredData, setFilteredData] = useState(destinationsData);
+  const [destinations, setDestinations] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
+  const [destinationCard, setDestinationCard] = useState([]);
   const [selectedRows, setSelectedRows] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState("");
+
+  useEffect(() => {
+    const getDestinationData = async () => {
+      try {
+        const response = await getDestinationPackages();
+        console.log(response);
+
+        const destinationData = response?.data.data.destinationDetails?.map(
+          (destination) => ({
+            destination: destination.destination,
+            packages: destination.packagesCount,
+            status:
+              destination?.packages.length > 0
+                ? destination.packages[0].status
+                : "N/A",
+            createdAt:
+              destination?.packages.length > 0
+                ? destination.packages[0].createdAt
+                : "N/A",
+            images:
+              destination?.packages.length > 0
+                ? destination.packages[0].images
+                : [],
+          })
+        );
+        setDestinationCard(response?.data.data);
+        setDestinations(destinationData);
+        setFilteredData(destinationData);
+      } catch (error) {
+        console.log(error.message);
+      }
+    };
+    getDestinationData();
+  }, []);
 
   // Handle Search
   const handleSearch = (event) => {
     const query = event.target.value.toLowerCase();
     setSearchQuery(query);
-    const filtered = destinationsData.filter((item) =>
+
+    const filtered = destinations?.filter((item) =>
       item.destination.toLowerCase().includes(query)
     );
+
     setFilteredData(filtered);
   };
 
-  // Handle Pagination
-  const handleChangePage = (newPage) => {
+  const handleChangePage = (event, newPage) => {
     setPage(newPage);
   };
 
-  const handleChangeRowsPerPage = (newRowsPerPage) => {
-    setRowsPerPage(newRowsPerPage);
+  const handleChangeRowsPerPage = (event) => {
+    setRowsPerPage(parseInt(event.target.value, 10));
     setPage(0);
   };
 
@@ -183,6 +117,37 @@ const DestinationPage = () => {
     setIsModalOpen(false);
     setModalType("");
   };
+
+  const data = [
+    {
+      title: "Active Destination",
+      value: destinationCard.totalActiveDestinations || 0,
+      total: destinationCard.totalPackages,
+      percentage: 100,
+      isPositive: true,
+    },
+    {
+      title: "Inactive Destination",
+      value: destinationCard.totalInactiveDestinations || 0,
+      total: destinationCard.totalPackages,
+      percentage: 0,
+      isPositive: false,
+    },
+    {
+      title: "Created by Today",
+      value: destinationCard.createdToday || 0,
+      total: destinationCard.totalPackages,
+      percentage: 0,
+      isPositive: false,
+    },
+    {
+      title: "Created This Month",
+      value: destinationCard.createdThisMonth || 0,
+      total: destinationCard.totalPackages,
+      percentage: 0,
+      isPositive: false,
+    },
+  ];
 
   return (
     <Box>
@@ -281,15 +246,7 @@ const DestinationPage = () => {
                 >
                   Filter
                 </Button>
-                <Link to={"/admin/add-destination"}>
-                  <Button
-                    startIcon={<Add />}
-                    variant="contained"
-                    sx={{ backgroundColor: "#377dff", fontSize: "10px" }}
-                  >
-                    Add New
-                  </Button>
-                </Link>
+
               </>
             )}
           </Box>
@@ -319,21 +276,21 @@ const DestinationPage = () => {
             </TableHead>
             <TableBody>
               {filteredData
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((row) => (
-                  <TableRow key={row.id}>
+                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                ?.map((row, index) => (
+                  <TableRow key={index}>
                     <TableCell padding="checkbox">
                       <Checkbox
                         sx={{ color: "#888" }}
-                        checked={selectedRows.includes(row.id)}
-                        onChange={() => handleSelectRow(row.id)}
+                        checked={selectedRows.includes(row.destination)}
+                        onChange={() => handleSelectRow(row.destination)}
                       />
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: "flex", alignItems: "center" }}>
                         <img
-                          src={first1}
-                          alt={row.destination}
+                          src={row?.images[0] || first1}
+                          alt={row?.destination}
                           style={{
                             width: "32px",
                             height: "32px",
@@ -341,27 +298,35 @@ const DestinationPage = () => {
                             marginRight: "8px",
                           }}
                         />
-                        {row.destination}
+                        {row?.destination}
                       </Box>
                     </TableCell>
-                    <TableCell>{row.packages}</TableCell>
+                    <TableCell>{row?.packages}</TableCell>
                     <TableCell>
                       <Typography
                         sx={{
                           display: "inline-block",
-                          backgroundColor: "#d1fae5",
-                          color: "#065f46",
+                          backgroundColor:
+                            row.status === "active" ? "#d1fae5" : "#fee2e2",
+                          color:
+                            row.status === "active" ? "#065f46" : "#b91c1c",
                           borderRadius: "4px",
                           padding: "2px 8px",
                           fontSize: "12px",
                         }}
                       >
-                        {row.status}
+                        {row?.status}
                       </Typography>
                     </TableCell>
-                    <TableCell>{row.createdAt}</TableCell>
-                    <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      <Link to={"/admin/add-destination"}>
+                    <TableCell>
+                      {new Date(row?.createdAt).toLocaleDateString("en-IN", {
+                        day: "2-digit",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </TableCell>
+                    <TableCell>
+                      <Link to={`/admin/add-package-category/${row._id}`}>
                         <IconButton size="small" color="#888">
                           <Edit />
                         </IconButton>

@@ -9,9 +9,9 @@ import TourMap from "../models/tourMapModel.js";
  */
 export const createTourMap = async (req, res) => {
   try {
-    const { packageId, mapUrl, startPoint, endPoint, guideDetails, landmarks, routes, categoryId } = req.body;
+    const { packageId, mapUrl, startPoint, endPoint, guideDetails, landmarks, routes } = req.body;
 
-    if (!packageId || !startPoint || !endPoint || !guideDetails || !landmarks || !routes || !categoryId) {
+    if (!packageId || !startPoint || !endPoint || !guideDetails || !landmarks || !routes ) {
       return res.status(400).json({ success: false, message: "All required fields must be provided." });
     }
 
@@ -21,13 +21,8 @@ export const createTourMap = async (req, res) => {
       return res.status(404).json({ success: false, message: "Package not found." });
     }
     
-    // Validate category exists
-    const pkgCategory = await Category.findById(categoryId)
-    if (!pkgCategory) {
-      return res.status(404).json({ success: false, message: "Category not found." });
-    }
+   
     const newTourMap = new TourMap({
-      categoryId,
       packageId,
       mapUrl,
       startPoint,
@@ -92,7 +87,7 @@ export const updateTourMap = async (req, res) => {
       id,
       { ...updates, updatedAt: Date.now() },
       { new: true } // Return updated document
-    ).populate("packageId").populate("categoryId");
+    ).populate("packageId")
 
     if (!updatedTourMap) {
       return res.status(404).json({

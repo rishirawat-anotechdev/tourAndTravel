@@ -13,11 +13,18 @@ import {
 } from "@mui/material";
 import { useDropzone } from "react-dropzone";
 import { useSnackbar } from "./SnackbarProvider";
-import { getCategoryPackages, createPackage } from "../api/packagesAPI";
+import {
+  getCategoryPackages,
+  createPackage,
+  updatePackageById,
+  getPackageById,
+} from "../api/packagesAPI";
 import { Add, Delete } from "@mui/icons-material";
 import LoaderPage from "./LoaderPage";
+import { useParams } from "react-router-dom";
 
-const AddPackageForm = () => {
+const EditPackageForm = () => {
+  const { packageId } = useParams();
   const { showSnackbar } = useSnackbar();
   const [images, setImages] = useState([]);
   const [categories, setCategories] = useState([]);
@@ -44,16 +51,45 @@ const AddPackageForm = () => {
   const MAX_IMAGES = 4;
 
   useEffect(() => {
-    const fetchCategories = async () => {
+    const fetchData = async () => {
       try {
-        const response = await getCategoryPackages();
-        setCategories(response.data.categories);
+        setLoading(true);
+        const categoriesResponse = await getCategoryPackages();
+        const packageResponse = await getPackageById(packageId);
+
+        setCategories(categoriesResponse.data.categories);
+
+        const packageData = packageResponse?.data.data;
+        setFormData({
+          categoryId: packageData.categoryId._id,
+          title: packageData.title,
+          destination: packageData.destination,
+          duration: packageData.duration,
+          tourType: packageData.tourType,
+          minTravelers: packageData.minTravelers,
+          maxTravelers: packageData.maxTravelers,
+          price: packageData.price,
+          discountPrice: packageData.discountPrice,
+          status: packageData.status,
+          ratings: packageData.ratings,
+          overview: packageData.overview.highlights.map((text) => ({ text })),
+          included: packageData.included.map((item) => ({ title: item.title })),
+          startDate: new Date(packageData.startDate)
+            .toISOString()
+            .split("T")[0],
+        });
+        setImages(packageData.images);
       } catch (error) {
-        showSnackbar("Failed to load categories.", "error");
+        showSnackbar(
+          error.response.data.message || "Failed to load data.",
+          "error"
+        );
+      } finally {
+        setLoading(false);
       }
     };
-    fetchCategories();
-  }, [showSnackbar]);
+    fetchData();
+  }, [packageId]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -118,7 +154,6 @@ const AddPackageForm = () => {
   const handleSubmit = async () => {
     if (
       !formData.categoryId ||
-      !images.length ||
       !formData.title ||
       !formData.destination ||
       !formData.duration ||
@@ -132,8 +167,16 @@ const AddPackageForm = () => {
       return;
     }
     setLoading(true);
+
     const formDataToSend = new FormData();
-    images.forEach((image) => formDataToSend.append("image", image));
+    images.forEach((image) => {
+      if (typeof image === "string") {
+        formDataToSend.append("existingImages", image);
+      } else {
+        formDataToSend.append("image", image);
+      }
+    });
+
     Object.entries(formData).forEach(([key, value]) => {
       if (Array.isArray(value)) {
         value.forEach((item, index) =>
@@ -145,32 +188,14 @@ const AddPackageForm = () => {
     });
 
     try {
-      const response = await createPackage(formDataToSend);
+      const response = await updatePackageById(packageId, formDataToSend);
       showSnackbar(
-        response?.data?.message || "Package created successfully",
+        response?.data?.message || "Package updated successfully",
         "success"
       );
-
-      setFormData({
-        categoryId: "",
-        title: "",
-        destination: "",
-        duration: "",
-        tourType: "",
-        minTravelers: "",
-        maxTravelers: "",
-        price: "",
-        discountPrice: "",
-        status: "active",
-        ratings: 5,
-        overview: [],
-        included: [],
-        startDate: "",
-      });
-      setImages([]);
     } catch (error) {
       showSnackbar(
-        error.response?.data?.message || "Failed to create package.",
+        error.response?.data?.message || "Failed to update package.",
         "error"
       );
     } finally {
@@ -186,7 +211,7 @@ const AddPackageForm = () => {
     <Box>
       <Box component={Paper} sx={{ p: 2 }}>
         <Typography variant="h6" fontWeight="bold">
-          Add New Package
+          Edit Package
         </Typography>
         <Box
           component="form"
@@ -354,7 +379,9 @@ const AddPackageForm = () => {
           {images.map((file, index) => (
             <Box key={index} sx={{ position: "relative" }}>
               <img
-                src={URL.createObjectURL(file)}
+                src={
+                  typeof file === "string" ? file : URL.createObjectURL(file)
+                }
                 alt="preview"
                 style={{ width: "100px", height: "100px", objectFit: "cover" }}
               />
@@ -386,4 +413,4 @@ const AddPackageForm = () => {
   );
 };
 
-export default AddPackageForm;
+export default EditPackageForm;

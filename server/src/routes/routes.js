@@ -10,7 +10,8 @@ import ticketRoutes from "./ticketRoutes.js"
 import chatRoutes from "./chatRoutes.js"
 import paymentRoutes from "./paymentRoutes.js"
 import favouriteRoutes from "./favoritesRoutes.js"
-
+import couponRoutes from "./CouponRoute.js"
+import adminRoutes from "./adminroutes.js"
 
 
 
@@ -24,6 +25,9 @@ router.use('/ticket', ticketRoutes)
 router.use('/chat', chatRoutes)
 router.use('/favourite', favouriteRoutes)
 router.use('/payment', paymentRoutes)
+router.use('/discount', couponRoutes)
+router.use('/admin',adminRoutes)
+
 
 
 export default router;

@@ -15,131 +15,45 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import StatisticCard from "../Components/StatisticCard";
 import { Add, Edit, FilterList, Search } from "@mui/icons-material";
 import { Link } from "react-router-dom";
 import CustomPagination from "../Components/CustomPagination";
-import first1 from "../assets/first1.jpg";
-const data = [
-  {
-    title: "Active Packages Category",
-    value: 14,
-    total: 14,
-    percentage: 100,
-    isPositive: true,
-  },
-  {
-    title: "Inactive Packages Category",
-    value: 0,
-    total: 14,
-    percentage: 0,
-    isPositive: false,
-  },
-  {
-    title: "Today's Created Categories",
-    value: 0,
-    total: 14,
-    percentage: 0,
-    isPositive: false,
-  },
-  {
-    title: "This Month's Created Categories",
-    value: 0,
-    total: 14,
-    percentage: 0,
-    isPositive: false,
-  },
-];
 
-const destinationsData = [
-  {
-    id: 1,
-    destination: "Office Tour",
-    packages: 3,
-    status: "Active",
-    createdAt: "05/09/2024",
-  },
-  {
-    id: 2,
-    destination: "Couple Tour",
-    packages: 3,
-    status: "Active",
-    createdAt: "04/09/2024",
-  },
-  {
-    id: 3,
-    destination: "Faimly Tour",
-    packages: 3,
-    status: "Active",
-    createdAt: "04/09/2024",
-  },
-  {
-    id: 4,
-    destination: "Adventure Tour",
-    packages: 2,
-    status: "Active",
-    createdAt: "08/08/2024",
-  },
-  {
-    id: 5,
-    destination: "Group Tour",
-    packages: 1,
-    status: "Active",
-    createdAt: "26/07/2024",
-  },
-  {
-    id: 6,
-    destination: "Paris",
-    packages: 1,
-    status: "Active",
-    createdAt: "26/07/2024",
-  },
-  {
-    id: 7,
-    destination: "Milan",
-    packages: 1,
-    status: "Active",
-    createdAt: "25/07/2024",
-  },
-  {
-    id: 8,
-    destination: "Dhaka",
-    packages: 2,
-    status: "Active",
-    createdAt: "25/07/2024",
-  },
-  {
-    id: 9,
-    destination: "Athens",
-    packages: 1,
-    status: "Active",
-    createdAt: "15/07/2024",
-  },
-  {
-    id: 10,
-    destination: "Bhutan",
-    packages: 1,
-    status: "Active",
-    createdAt: "15/07/2024",
-  },
-];
+import { getCategoryPackages } from "../api/packagesAPI";
+
 const PackageCategory = () => {
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [page, setPage] = useState(0);
   const [openFilterModal, setOpenFilterModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredData, setFilteredData] = useState(destinationsData);
+  const [packageCategory, setPackageCategory] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
   const [selectedRows, setSelectedRows] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalType, setModalType] = useState("");
+
+  useEffect(() => {
+    const getTicketsData = async () => {
+      try {
+        const categories = await getCategoryPackages();
+
+        setPackageCategory(categories.data);
+        setFilteredData(categories.data.categories);
+      } catch (error) {
+        console.log(error.message);
+      }
+    };
+    getTicketsData();
+  }, []);
 
   // Handle Search
   const handleSearch = (event) => {
     const query = event.target.value.toLowerCase();
     setSearchQuery(query);
-    const filtered = destinationsData.filter((item) =>
-      item.destination.toLowerCase().includes(query)
+    const filtered = filteredData.filter((item) =>
+      item.name.toLowerCase().includes(query)
     );
     setFilteredData(filtered);
   };
@@ -181,6 +95,37 @@ const PackageCategory = () => {
     setIsModalOpen(false);
     setModalType("");
   };
+
+  const data = [
+    {
+      title: "Active Packages Category",
+      value: packageCategory.activeCategoriesCount,
+      total: packageCategory.totalPackages,
+      percentage: 100,
+      isPositive: true,
+    },
+    {
+      title: "Inactive Packages Category",
+      value: packageCategory.inactiveCategoriesCount,
+      total: packageCategory.totalPackages,
+      percentage: 0,
+      isPositive: false,
+    },
+    {
+      title: "Today's Created Categories",
+      value: packageCategory.todayCreatedCategoriesCount,
+      total: packageCategory.totalPackages,
+      percentage: 0,
+      isPositive: false,
+    },
+    {
+      title: "This Month's Created Categories",
+      value: packageCategory.thisMonthCreatedCategoriesCount,
+      total: packageCategory.totalPackages,
+      percentage: 0,
+      isPositive: false,
+    },
+  ];
   return (
     <Box>
       <Box sx={{ border: "10px", my: 2, borderColor: "#888" }} />
@@ -211,7 +156,7 @@ const PackageCategory = () => {
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <TextField
-              label="Search Destinations"
+              label="Search Categories"
               variant="standard"
               size="small"
               value={searchQuery}
@@ -307,7 +252,7 @@ const PackageCategory = () => {
                   />
                 </TableCell>
                 <TableCell>Name</TableCell>
-                <TableCell>Packages</TableCell>
+                <TableCell>Package Count</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Created At</TableCell>
                 <TableCell>Action</TableCell>
@@ -317,18 +262,18 @@ const PackageCategory = () => {
               {filteredData
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => (
-                  <TableRow key={row.id}>
+                  <TableRow key={row._id}>
                     <TableCell padding="checkbox">
                       <Checkbox
                         sx={{ color: "#888" }}
-                        checked={selectedRows.includes(row.id)}
-                        onChange={() => handleSelectRow(row.id)}
+                        checked={selectedRows.includes(row._id)}
+                        onChange={() => handleSelectRow(row._id)}
                       />
                     </TableCell>
                     <TableCell>
                       <Box sx={{ display: "flex", alignItems: "center" }}>
                         <img
-                          src={first1}
+                          src={row.image}
                           alt={row.destination}
                           style={{
                             width: "32px",
@@ -337,10 +282,10 @@ const PackageCategory = () => {
                             marginRight: "8px",
                           }}
                         />
-                        {row.destination}
+                        {row.name}
                       </Box>
                     </TableCell>
-                    <TableCell>{row.packages}</TableCell>
+                    <TableCell>{row.packageCount}</TableCell>
                     <TableCell>
                       <Typography
                         sx={{
@@ -355,9 +300,11 @@ const PackageCategory = () => {
                         {row.status}
                       </Typography>
                     </TableCell>
-                    <TableCell>{row.createdAt}</TableCell>
+                    <TableCell>
+                      {new Date(row.createdAt).toLocaleDateString()}
+                    </TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
-                      <Link to={"/admin/add-package-category"}>
+                      <Link to={`/admin/edit-package-category/${row._id}`}>
                         <IconButton size="small" color="#888">
                           <Edit />
                         </IconButton>

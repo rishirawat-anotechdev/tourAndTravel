@@ -1,14 +1,15 @@
 import Testimonial from "../models/testimonialModel.js";
 
+
 // Create a new testimonial
 export const createTestimonial = async (req, res) => {
   try {
-    const { userId, comment, status } = req.body;
+    const { userId, comment, status, packageId } = req.body;
     if (!userId ||!comment ) {
       return res.status(400).json({ error: 'All fields are required' });
     }
 
-    const testimonial = new Testimonial({ userId, comment, status });
+    const testimonial = new Testimonial({ userId, comment, status, packageId });
     await testimonial.save();
 
     res.status(201).json({ message: 'Testimonial created successfully', testimonial });
@@ -83,3 +84,90 @@ export const deleteTestimonial = async (req, res) => {
     res.status(500).json({ error: 'Error deleting testimonial', details: error.message });
   }
 };
+
+
+
+
+export const getReviews = async (req, res) => {
+  try {
+    const today = new Date();
+    const startOfDay = new Date(today.setHours(0, 0, 0, 0));
+    const endOfDay = new Date(today.setHours(23, 59, 59, 999));
+
+    // Aggregate reviews with package and user details
+    const reviews = await Testimonial.aggregate([
+      {
+        $lookup: {
+          from: "users", // Reference the "users" collection
+          localField: "userId", // Match userId in Testimonial with _id in User
+          foreignField: "_id",
+          as: "reviewer",
+        },
+      },
+      {
+        $unwind: {
+          path: "$reviewer",
+          preserveNullAndEmptyArrays: true, // Allow null if no match is found
+        },
+      },
+      {
+        $lookup: {
+          from: "packages", // Reference the "packages" collection
+          localField: "packageId", // Match packageId in Testimonial with _id in Package
+          foreignField: "_id",
+          as: "package",
+        },
+      },
+      {
+        $unwind: {
+          path: "$package",
+          preserveNullAndEmptyArrays: true, // Allow null if no match is found
+        },
+      },
+      {
+        $project: {
+          reviewId: "$_id", // Testimonial ID
+          packageTitle: "$package.title", // Package title
+          reviewerName: {
+            $concat: ["$reviewer.firstname", " ", "$reviewer.lastname"], // Concatenate first and last name
+          },
+          reviewerEmail: "$reviewer.email", // Reviewer email
+          ratings: "$package.ratings", // Package ratings
+          comment: "$comment", // Review comment
+          status: "$status", // Review status
+          createdAt: "$createdAt", // Testimonial creation date
+        },
+      },
+      { $sort: { createdAt: -1 } }, // Sort by creation date in descending order
+    ]);
+
+    // Calculate counts for review statuses
+    const totalPublishedReviews = await Testimonial.countDocuments({ status: "Published" });
+    const totalDraftReviews = await Testimonial.countDocuments({ status: "Draft" });
+    const totalArchivedReviews = await Testimonial.countDocuments({ status: "Archived" });
+    const todaysReviews = await Testimonial.countDocuments({
+      createdAt: { $gte: startOfDay, $lte: endOfDay },
+    });
+
+    // Send response
+    return res.status(200).json({
+      success: true,
+      message: "Reviews retrieved successfully.",
+      data: reviews,
+      stats: {
+        totalPublishedReviews,
+        totalDraftReviews,
+        totalArchivedReviews,
+        todaysReviews,
+      },
+    });
+  } catch (error) {
+    console.error("Error fetching reviews:", error.message);
+    return res.status(500).json({
+      success: false,
+      message: "Error retrieving reviews.",
+      error: error.message,
+    });
+  }
+};
+

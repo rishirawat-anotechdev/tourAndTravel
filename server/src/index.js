@@ -35,9 +35,9 @@ if (cluster.isPrimary) {
   // Worker processes (these will run the server)
   const app = express();
 
-  // Enable CORS for requests from localhost:3000
+ 
   app.use(cors({
-    origin:  "http://localhost:3000", 
+    origin:  ["http://localhost:3000", "http://localhost:3001" ], 
     credentials: true,
   }));
 
