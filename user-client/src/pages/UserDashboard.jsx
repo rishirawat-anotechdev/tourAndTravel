@@ -22,37 +22,8 @@ import StatisticCard from "../components/StatisticCard";
 import { useSelector } from "react-redux";
 import { useSnackbar } from "../components/SnackbarProvider";
 import { getFavourite, removeFavourite } from "../api/dashboardApi";
+import { getOrderDetials } from "../api/paymentAPI";
 
-const data = [
-  {
-    title: "Total Booked Tour",
-    value: 14,
-    total: 14,
-    percentage: 100,
-    isPositive: true,
-  },
-  {
-    title: "Total Transaction",
-    value: 0,
-    total: 14,
-    percentage: 0,
-    isPositive: false,
-  },
-  {
-    title: "Total Support Ticket",
-    value: 0,
-    total: 14,
-    percentage: 0,
-    isPositive: false,
-  },
-  {
-    title: "Total Pain Amount",
-    value: 0,
-    total: 14,
-    percentage: 0,
-    isPositive: false,
-  },
-];
 
 const UserDashboard = () => {
   const { userId } = useSelector((state) => state.auth);
@@ -62,12 +33,15 @@ const UserDashboard = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [favourite, setFavourite] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
+  const [orderDetails, setOrderDetails] = useState([])
 
   // Fetch Favorites
   useEffect(() => {
     const fetchFavouriteList = async () => {
       try {
         const data = await getFavourite(userId);
+        const orderData = await getOrderDetials(userId)
+        setOrderDetails(orderData?.data.data)
         setFavourite(data);
         setFilteredData(data);
       } catch (error) {
@@ -75,7 +49,7 @@ const UserDashboard = () => {
       }
     };
     fetchFavouriteList();
-  }, [userId]);
+  },[]);
 
   // Handle Search
   const handleSearch = (event) => {
@@ -116,6 +90,34 @@ const UserDashboard = () => {
     }
   };
 
+  const totalPaidAmount = orderDetails?.totalPaidAmount?.$numberDecimal;
+
+
+ 
+  const data = [
+    {
+      title: "Total Booked Tour",
+      value: orderDetails?.totalTours || 0,
+  
+    },
+    {
+      title: "Total Transaction",
+       value: totalPaidAmount || 0,
+ 
+    },
+    {
+      title: "Total Support Ticket",
+      value: 0,
+ 
+    },
+    {
+      title: "Total Paid Amount",
+       value: totalPaidAmount || 0,
+  
+    },
+  ];
+
+  
   return (
     <Box>
       <Box sx={{ border: "10px", my: 2, borderColor: "#888" }} />

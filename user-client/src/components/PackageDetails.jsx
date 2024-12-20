@@ -16,10 +16,12 @@ import hero from "../assets/hero.jpg";
 
 import HeaderPage from "./HeaderPage";
 import { GoogleMap, LoadScript } from "@react-google-maps/api";
-
+import { useSnackbar } from "./SnackbarProvider";
 import FooterPage from "./FooterPage";
 import { useParams } from "react-router-dom";
 import { getPackageDetail } from "../api/TopDestinationApi";
+import { applyCoupon, createOrder, verifyOrder } from "../api/paymentAPI";
+import { useSelector } from "react-redux";
 
 const containerStyle = {
   width: "100%",
@@ -32,15 +34,16 @@ const center = {
 };
 
 const PackageDetails = () => {
+  const { showSnackbar } = useSnackbar();
+  const {name, email } = useSelector((state) => state.auth )
   const { packageId } = useParams();
-
   const [selectedImage, setSelectedImage] = useState(hero);
- 
   const [adultCount, setAdultCount] = useState(0);
-  const [childrenCount, setChildrenCount] = useState(0);
-  const [infantCount, setInfantCount] = useState(0);
   const [selectedTab, setSelectedTab] = useState(0);
   const [packageDetails, setPackageDetails] = useState(null);
+  const [couponCode, setCouponCode] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [finalAmount, setFinalAmount] = useState(0);
 
   const handleTabChange = (event, newValue) => {
     setSelectedTab(newValue);
@@ -48,10 +51,8 @@ const PackageDetails = () => {
   useEffect(() => {
     const getDetails = async () => {
       try {
-      
         const data = await getPackageDetail(packageId);
 
-        
         setPackageDetails(data);
 
         // Ensure images array exists and is not empty
@@ -72,28 +73,122 @@ const PackageDetails = () => {
       setAdultCount(
         operation === "increment" ? adultCount + 1 : Math.max(adultCount - 1, 0)
       );
-    } else if (type === "children") {
-      setChildrenCount(
-        operation === "increment"
-          ? childrenCount + 1
-          : Math.max(childrenCount - 1, 0)
-      );
-    } else if (type === "infant") {
-      setInfantCount(
-        operation === "increment"
-          ? infantCount + 1
-          : Math.max(infantCount - 1, 0)
-      );
     }
   };
 
   const calculateTotal = () => {
-    const totalAdults = adultCount * packageDetails?.price || 0;
-    const totalChildren =
-      childrenCount *
-      (packageDetails?.discountPrice || packageDetails?.price / 2 || 0);
-    return totalAdults + totalChildren;
+    return adultCount * (packageDetails?.price || 0);
   };
+
+  const formatDate = (isoDate) => {
+    return new Date(isoDate).toLocaleString("en-GB");
+  };
+
+  const handleApplyCoupon = async () => {
+    setLoading(true);
+    try {
+      const cartAmount = calculateTotal();
+      const trimmedCode = couponCode.trim(); 
+  
+    
+      if (!trimmedCode) {
+        showSnackbar("Coupon code cannot be empty", "error");
+        setLoading(false);
+        return;
+      }
+  
+      if (cartAmount <= 0) {
+        showSnackbar("Cart amount must be greater than zero", "error");
+        setLoading(false);
+        return;
+      }
+  
+    
+      const response = await applyCoupon({ code: trimmedCode, cartAmount });
+  
+      if (response.data.success) {
+        setFinalAmount(response.data.finalAmount);
+        showSnackbar(
+          response.data.message || "Coupon applied successfully",
+          "success"
+        );
+      } else {
+        showSnackbar(response.data.message || "Failed to apply coupon", "error");
+      }
+    } catch (error) {
+      showSnackbar(
+        error.response?.data?.message || "Error applying coupon",
+        "error"
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePayment = async () => {
+    const totalAmount = finalAmount || calculateTotal();
+  console.log("run1");
+  
+    try {
+      // Create order in backend
+      const response = await createOrder({
+        packageId: packageDetails._id,
+        totalAmount,
+        quantity: adultCount,
+        discountCode: couponCode,
+      });
+    console.log("run2")
+      if (response.data.success) {
+        const razorpayOptions = {
+          key: process.env.REACT_APP_RAZORPAY_KEY_ID, 
+          amount: response.data.amount, 
+          currency: response.data.currency,
+          name: 'Anotech Travels',
+          description: 'Our Aim to provide best services',
+          order_id: response.data.razorpayOrderId,
+          handler: async (razorpayResponse) => {
+            try {
+              // Verify the payment after successful Razorpay response
+              const verificationResponse  = await verifyOrder({
+                razorpay_order_id: razorpayResponse.razorpay_order_id,
+                razorpay_payment_id: razorpayResponse.razorpay_payment_id,
+                razorpay_signature: razorpayResponse.razorpay_signature,
+              });
+   
+              
+              console.log("run2")
+              if (verificationResponse.data.success) {
+                showSnackbar(verificationResponse.data.message || "Payment successful", "success");
+              } else {
+                showSnackbar("Payment verification failed", "error");
+              }
+            } catch (error) {
+              showSnackbar(error.response?.data?.message || 'Error verifying payment', 'error');
+            }
+          },
+          prefill: {
+            name: name, 
+            email: email,
+           
+          },
+          theme: {
+            color: "#18a19a",
+          },
+        };
+  
+        if (window.Razorpay) {
+          const razorpayInstance = new window.Razorpay(razorpayOptions);
+          razorpayInstance.open();
+        } else {
+          showSnackbar("Razorpay SDK not loaded", "error");
+        }
+      }
+    } catch (error) {
+      showSnackbar('Error creating order', 'error');
+    }
+  };
+  
+  
 
   return (
     <Box sx={{ backgroundColor: "#f9f8eb", minHeight: "100vh" }}>
@@ -202,6 +297,25 @@ const PackageDetails = () => {
           {/* Tour Details */}
           <Typography variant="h5">
             {packageDetails?.title || "Loading..."}
+          </Typography>
+          {/* Tour Details */}
+          <Typography
+            variant="h5"
+            color="textSecondary"
+            sx={{ display: "flex", flexDirection: "row", alignItems: "center" }}
+          >
+            <span> Price: ₹{packageDetails?.price || "Loading..."} </span>
+            <span
+              style={{
+                marginLeft: 10,
+                fontSize: "15px",
+                marginTop: 4,
+                textDecoration: "line-through",
+                color: "red",
+              }}
+            >
+              {packageDetails?.discountPrice || "Loading..."}{" "}
+            </span>
           </Typography>
 
           <Typography variant="body2" color="textSecondary">
@@ -407,12 +521,23 @@ const PackageDetails = () => {
             <Typography variant="h6" gutterBottom>
               Booking Tour
             </Typography>
+
+            {/* Date field */}
             <TextField
               label="Date"
-              type="date"
+              type="text"
               fullWidth
+              value={
+                packageDetails?.startDate
+                  ? formatDate(packageDetails.createdAt)
+                  : ""
+              }
+              InputProps={{
+                readOnly: true,
+              }}
               sx={{
                 mb: 2,
+                backgroundColor: "#f0f0f0",
                 "& .MuiOutlinedInput-root": {
                   "& fieldset": {
                     borderColor: "#147d78",
@@ -439,59 +564,61 @@ const PackageDetails = () => {
 
             {/* Quantity Controls */}
             <Stack spacing={2}>
-              {[
-                {
-                  label: "Adults (Over 18+)",
-                  count: adultCount,
-                  type: "adult",
-                },
-                {
-                  label: "Children (Under 12)",
-                  count: childrenCount,
-                  type: "children",
-                },
-                {
-                  label: "Infant (Under 3)",
-                  count: infantCount,
-                  type: "infant",
-                },
-              ].map((item, idx) => (
-                <Box
-                  key={idx}
-                  display="flex"
-                  alignItems="center"
-                  justifyContent="space-between"
-                  borderBottom={1}
-                  borderColor="#f1f1f1"
-                  sx={{
-                    padding: "5px 0",
-                  }}
-                >
-                  <Typography>{item.label}</Typography>
-                  <Box>
-                    <IconButton
-                      onClick={() =>
-                        handleQuantityChange(item.type, "decrement")
-                      }
-                    >
-                      <Remove />
-                    </IconButton>
-                    <Typography component="span">{item.count}</Typography>
-                    <IconButton
-                      onClick={() =>
-                        handleQuantityChange(item.type, "increment")
-                      }
-                    >
-                      <Add />
-                    </IconButton>
-                  </Box>
+              <Box
+                display="flex"
+                alignItems="center"
+                justifyContent="space-between"
+                borderBottom={1}
+                borderColor="#f1f1f1"
+                sx={{
+                  padding: "5px 0",
+                }}
+              >
+                <Typography>Adults (Over 18+)</Typography>
+                <Box>
+                  <IconButton
+                    onClick={() => handleQuantityChange("adult", "decrement")}
+                  >
+                    <Remove />
+                  </IconButton>
+                  <Typography component="span">{adultCount}</Typography>
+                  <IconButton
+                    onClick={() => handleQuantityChange("adult", "increment")}
+                  >
+                    <Add />
+                  </IconButton>
                 </Box>
-              ))}
+              </Box>
             </Stack>
 
-            {/* Total and Book Now Button */}
+            {/* Coupon code input */}
+            <TextField
+              label="Enter Coupon Code"
+              fullWidth
+              value={couponCode}
+              onChange={(e) => setCouponCode(e.target.value)}
+              sx={{ mb: 2 }}
+            />
+            <Button
+              variant="contained"
+              onClick={handleApplyCoupon}
+              disabled={loading}
+              sx={{
+                mb: 2,
+                backgroundColor: "#18a19a",
+                "&:hover": { backgroundColor: "#147d78" },
+                padding: "5px 15px",
+                fontWeight: "bold",
+                fontSize: "0.8rem",
+                whiteSpace: "nowrap",
+              }}
+            >
+              Apply Coupon
+            </Button>
+
+            {/* Total and Final Amount */}
             <Typography variant="h6" mt={2}>
-              Total: ₹{calculateTotal()}
+              Total: ₹{finalAmount > 0 ? finalAmount : calculateTotal()}
             </Typography>
             <Button
               variant="contained"
@@ -504,6 +631,7 @@ const PackageDetails = () => {
                 fontSize: "0.8rem",
                 whiteSpace: "nowrap",
               }}
+              onClick={handlePayment}
             >
               Book Now
             </Button>

@@ -48,16 +48,21 @@ const SignInPage = () => {
     e.preventDefault();
     try {
       validate();
-      const { userId, token, name, email, msg } = await login(
+      const { userId, token, name, email, message, role, img } = await login(
         formData.username,
         formData.password
       );
-
+    
+      
+if(role === 'user'){
+  showSnackbar("User is not allowed ", "error")
+  return
+}
       // Dispatch user login action if successful
-      dispatch(userLogin({ userId, token, name, email }));
+      dispatch(userLogin({ userId, token, name, email, role,img  }));
 
       // Show success message
-      showSnackbar(msg || "Logged in successfully!", "success");
+      showSnackbar(message || "Logged in successfully!", "success");
 
       // Navigate to home page only if login is successful
       navigate("/admin/dashboard");

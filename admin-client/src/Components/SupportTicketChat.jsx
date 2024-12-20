@@ -28,7 +28,7 @@ const SupportTicketChat = () => {
     const fetchMessages = async () => {
       try {
         const response = await getTicketChat(ticketId);
-        console.log(response);
+       
         
         setMessages(response.data.messages);
       } catch (error) {

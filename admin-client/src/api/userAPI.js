@@ -3,9 +3,9 @@ import { baseurl } from "./baseURL";
 export const login = async (email, password) => {
   try {
     const response = await baseurl.post("/user/signin", { email, password });
-    return response.data; 
+    return response.data;
   } catch (error) {
-    throw error; 
+    throw error;
   }
 };
 
@@ -14,25 +14,66 @@ export const logoutServer = async () => {
   return response.data;
 };
 
-
 export const deleteUser = async (userId) => {
   try {
     const response = await baseurl.delete(`/admin/user/${userId}`);
-    return response.data; 
+    return response.data;
   } catch (error) {
-    throw error; 
+    throw error;
   }
 };
 
+// get user profile
+export const getUserProfileById = async (userId) => {
+  try {
+    const response = await baseurl.get(`/user/${userId}`);
+    return response.data;
+  } catch (error) {
+    throw (
+      error.response?.data?.msg || "Failed to get profile. Please try again."
+    );
+  }
+};
+
+// update user profile
+export const updateUserProfile = async (userId, formDataToSend) => {
+  try {
+    const response = await baseurl.put(`/user/${userId}`, formDataToSend, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error) {
+    throw (
+      error.response?.data?.message ||
+      "Failed to update profile. Please try again."
+    );
+  }
+};
+
+// chnage user password
+export const changeUserPassword = async (userId, data) => {
+  try {
+    const response = await baseurl.put(`/user/${userId}/password`, data, {
+      withCredentials: true,
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(
+      error.response?.data?.message ||
+        "Failed to update password. Please try again."
+    );
+  }
+};
+
+// update user status
 export const updateUser = async (userId, status) => {
   try {
     const response = await baseurl.put(`/admin/user/${userId}/status`, status);
-    return response.data; 
+    return response.data;
   } catch (error) {
-    throw error; 
+    throw error;
   }
 };
-
 
 // get user information
 export const getUserProfile = async (userId) => {
@@ -45,7 +86,6 @@ export const getUserProfile = async (userId) => {
     );
   }
 };
-
 
 // ticker apis
 export const closeTicket = async (ticketId) => {
@@ -62,10 +102,9 @@ export const closeTicket = async (ticketId) => {
 };
 export const DeleteTicket = async (ticketId) => {
   try {
-    const response = await baseurl.delete(
-      `admin/tickets/${ticketId}`,
-      { withCredentials: true }
-    );
+    const response = await baseurl.delete(`admin/tickets/${ticketId}`, {
+      withCredentials: true,
+    });
     return response;
   } catch (error) {
     throw error;
@@ -76,7 +115,8 @@ export const DeleteTicket = async (ticketId) => {
 export const changeTicketStatus = async (ticketId, status) => {
   try {
     const response = await baseurl.patch(
-      `/admin/ticket/status/${ticketId}`,status,
+      `/admin/ticket/status/${ticketId}`,
+      status,
       { withCredentials: true }
     );
     return response;

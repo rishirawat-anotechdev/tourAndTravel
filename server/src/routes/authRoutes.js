@@ -9,7 +9,7 @@ router.post('/signup', signup)
 router.post('/resendCode', resendVerificationCode)
 router.post('/verifyAccount', verifyAccount)
 router.post("/signin", signin);
-router.get('/details', getAllUsers);
+router.get('/details',verifyToken, getAllUsers);
 router.get('/:userId',verifyToken, getUserDetailsById);
 router.put('/:userId',verifyToken, updateUserProfile);
 router.put('/:userId/password',verifyToken, changePassword);

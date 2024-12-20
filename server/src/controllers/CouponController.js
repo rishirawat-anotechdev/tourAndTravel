@@ -61,7 +61,23 @@ export const applyCoupon = async (req, res) => {
   try {
     const { code, cartAmount } = req.body;
 
-    const coupon = await Coupon.findOne({ code });
+    console.log( typeof code);
+    
+    if (!code || typeof code !== "string") {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Invalid coupon code format" 
+      });
+    }
+
+    if (!cartAmount || typeof cartAmount !== "number" || cartAmount <= 0) {
+      return res.status(400).json({
+        success: false,
+        message: "Cart amount must be greater than zero",
+      });
+    }
+
+    const coupon = await Coupon.findOne({ code: code.trim() });
     if (!coupon) {
       return res
         .status(404)
@@ -69,28 +85,15 @@ export const applyCoupon = async (req, res) => {
     }
 
     if (!coupon.isValid()) {
-      return res
-        .status(400)
-        .json({
-          success: false,
-          message: "Coupon is expired or usage limit exceeded",
-        });
-    }
-
-    // Check minimum purchase amount
-    if (cartAmount < coupon.minPurchaseAmount) {
       return res.status(400).json({
         success: false,
-        message: `Minimum purchase amount for this coupon is ₹${coupon.minPurchaseAmount}`,
+        message: "Coupon is expired or usage limit exceeded",
       });
     }
 
     let discount = 0;
     if (coupon.discountType === "percentage") {
       discount = (cartAmount * coupon.discountValue) / 100;
-      if (coupon.maxDiscountAmount) {
-        discount = Math.min(discount, coupon.maxDiscountAmount);
-      }
     } else if (coupon.discountType === "fixed") {
       discount = coupon.discountValue;
     }
@@ -98,8 +101,7 @@ export const applyCoupon = async (req, res) => {
     // Ensure discount does not exceed cart amount
     discount = Math.min(discount, cartAmount);
 
-    // Increment used count and save
-    coupon.usedCount += 1;
+  
     await coupon.save();
 
     res.status(200).json({
@@ -109,13 +111,11 @@ export const applyCoupon = async (req, res) => {
       finalAmount: cartAmount - discount,
     });
   } catch (error) {
-    res
-      .status(500)
-      .json({
-        success: false,
-        message: "Error applying coupon",
-        error: error.message,
-      });
+    res.status(500).json({
+      success: false,
+      message: "Error applying coupon",
+      error: error.message,
+    });
   }
 };
 

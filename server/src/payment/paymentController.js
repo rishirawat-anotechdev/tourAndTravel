@@ -1,44 +1,58 @@
-import crypto from 'crypto';
-import PaymentDetails from '../models/paymentDetailsModel.js';
-import Order from '../models/orderModel.js';
+import crypto from "crypto";
+import PaymentDetails from "../models/paymentDetailsModel.js";
+import Order from "../models/orderModel.js";
+import mongoose from "mongoose";
 
 export const verifyPayment = async (req, res) => {
+  const session = await mongoose.startSession();
+  session.startTransaction();
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
+      req.body;
 
     // Validate inputs
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-      return res.status(400).json({ success: false, message: 'Missing required fields' });
+      return res
+        .status(400)
+        .json({ success: false, message: "Missing required fields" });
+    }
+
+    // Find the order in the database
+    const order = await Order.findOne({
+      razorpayOrderId: razorpay_order_id,
+    }).session(session);
+    if (!order) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Order not found" });
+    }
+
+    if (order.status === "Confirmed") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Order already confirmed" });
     }
 
     // Verify the payment signature
     const generatedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
-      .digest('hex');
-      console.log(generatedSignature, "sig");
-      
+      .digest("hex");
+    console.log("rishi");
 
     if (generatedSignature !== razorpay_signature) {
-      return res.status(400).json({ success: false, message: 'Invalid payment signature' });
+      await session.abortTransaction();
+      return res
+        .status(400)
+        .json({ success: false, message: "Invalid payment signature" });
     }
-
-    // Find the order in the database
-    const order = await Order.findOne({ razorpayOrderId: razorpay_order_id });
-    if (!order) {
-      return res.status(404).json({ success: false, message: 'Order not found' });
-    }
-
-    if (order.status === 'Confirmed') {
-      return res.status(400).json({ success: false, message: 'Order already confirmed' });
-    }
-
+    console.log("rishi2");
     // Save payment details
     const paymentDetails = new PaymentDetails({
       transactionId: razorpay_payment_id,
-      method: 'Razorpay',
+      method: "Razorpay",
       amount: order.totalAmount,
-      status: 'Completed',
+      status: "Completed",
       date: new Date(),
       userId: order.userId,
       orderId: order._id,
@@ -46,30 +60,81 @@ export const verifyPayment = async (req, res) => {
       paymentDetails: req.body,
     });
 
-    await paymentDetails.save();
-
+    await paymentDetails.save({ session });
+    console.log("rishi3");
     // Update order status
-    order.status = 'Confirmed';
-    await order.save();
+    order.status = "Confirmed";
+    await order.save({ session });
 
-    res.status(200).json({ success: true, message: 'Payment verified ' });
+    await session.commitTransaction();
+    session.endSession();
+
+    res
+      .status(200)
+      .json({ success: true, message: "Payment verified successfully" });
   } catch (error) {
-    console.error('Error in verifyPayment:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    await session.abortTransaction();
+    console.error("Error in verifyPayment:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  } finally {
+    session.endSession();
   }
 };
 
-
 export const getPayments = async (req, res) => {
   try {
-    const payments = await PaymentDetails.find().populate('userId').populate('orderId').populate('packageId');
-    
+    const payments = await PaymentDetails.find()
+      .populate("userId")
+      .populate("orderId")
+      .populate("packageId");
+
     res.status(200).json({
       success: true,
       payments,
     });
   } catch (error) {
-    console.error('Error in getPayments:', error);
-    res.status(500).json({ success: false, message: 'Server error' });
+    console.error("Error in getPayments:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+
+export const getPaymentDetailsByUser = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    if (!userId) {
+      return res.status(400).json({ success: false, message: 'User ID is required.' });
+    }
+
+    // Fetch payment details for the given userId
+    const payments = await PaymentDetails.find({ userId })
+      .populate('orderId', 'orderId')
+      .populate('packageId', 'destination') 
+      .select('transactionId method amount status createdAt'); 
+
+    if (!payments.length) {
+      return res.status(404).json({ success: false, message: 'No payment details found.' });
+    }
+
+   
+    const formattedPayments = payments.map((payment) => ({
+      transactionId: payment.transactionId,
+      method: payment.method,
+      amount: parseFloat(payment.amount), 
+      status: payment.status,
+      bookingAt: payment.createdAt.toISOString(),
+    }));
+
+    return res.status(200).json({
+      success: true,
+      message: 'Payment details retrieved successfully.',
+      data: formattedPayments,
+    });
+  } catch (error) {
+    console.error('Error fetching payment details:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'An error occurred while fetching payment details.',
+    });
   }
 };

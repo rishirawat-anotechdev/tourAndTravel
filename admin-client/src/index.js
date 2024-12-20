@@ -25,7 +25,7 @@ const theme = createTheme({
 root.render(
   <Provider store={store}>
     <PersistGate loading={null} persistor={persistor}>
-      <SnackbarProvider>
+      <SnackbarProvider >
         <ThemeProvider theme={theme}>
           <BrowserRouter future={{ v7_startTransition: true }}>
             <App />

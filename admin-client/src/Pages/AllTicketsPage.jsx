@@ -40,7 +40,7 @@ const AllTicketPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await getAllTickets(); // API call
+        const response = await getAllTickets(); 
         const { stats, ticketDetails } = response.data;
 
         setTicketStats(stats);

@@ -4,15 +4,12 @@ import {
   Typography,
   TextField,
   Button,
-  Switch,
   Stack,
   Link,
   Paper,
   Grid,
   IconButton,
   Collapse,
-  Menu,
-  InputAdornment,
   FormControlLabel,
   Checkbox,
 } from "@mui/material";
@@ -45,16 +42,15 @@ const UserProfilePage = () => {
   const { showSnackbar } = useSnackbar();
   const { userId } = useParams();
   const [showStack, setShowStack] = useState(false);
-  const [showPassword, setShowPassword] = React.useState(false);
+
   const [checked, setChecked] = useState(false);
-  const [anchorEl, setAnchorEl] = useState(null);
+
   const [userProfile, setUserProfile] = useState(null);
 
   useEffect(() => {
     const fetchUserDetails = async () => {
       try {
         const response = await getUserProfile(userId);
-        console.log(response.data.data);
 
         setUserProfile(response.data);
       } catch (error) {
@@ -74,17 +70,8 @@ const UserProfilePage = () => {
     }
   };
 
-  const handleStatusChange = (newStatus) => {
-    // You can integrate status update logic here if needed
-    setAnchorEl(null);
-  };
-
   const handleCheckboxChange = (event) => {
     setChecked(event.target.checked);
-  };
-
-  const handleTogglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
   };
 
   const handleScroll = (id) => {

@@ -53,7 +53,7 @@ const App = () => {
               </RedirectIfLoggedIn>
             }
           />
-          <Route path="/" element={<HomePage />} />
+          <Route index path="/" element={<HomePage />} />
           <Route path="/destination/:destinationName" element={<CategoriesPage />} />
           <Route path="/packageDetail/:packageId" element={<PackageDetails />} />
           <Route path="/aboutUs" element={<AboutusPage />} />

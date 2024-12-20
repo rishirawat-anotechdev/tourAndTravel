@@ -13,7 +13,7 @@ export const getCategoryPackages = async () => {
 
 export const getAllPackages = async () => {
   try {
-    const response = await baseurl.get("/package/getAllPackages");
+    const response = await baseurl.get("/admin/package/getAllPackages");
     return response;
   } catch (error) {
     throw error;
@@ -31,7 +31,7 @@ export const getAllReviews = async () => {
 
 export const getAllCoupon = async () => {
   try {
-    const response = await baseurl.get("/discount/allstats");
+    const response = await baseurl.get("/admin/coupon/allstats");
     return response;
   } catch (error) {
     throw error;
@@ -40,7 +40,7 @@ export const getAllCoupon = async () => {
 
 export const getAllTickets = async () => {
   try {
-    const response = await baseurl.get("/ticket/allticketsStats");
+    const response = await baseurl.get("/admin/ticket/allticketsStats");
     return response;
   } catch (error) {
     throw error;

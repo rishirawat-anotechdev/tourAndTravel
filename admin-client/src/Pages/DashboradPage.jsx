@@ -253,7 +253,7 @@ const DashboardPage = () => {
     },
     {
       title: "Pending KYC",
-      value: 0,
+      value: userCardData?.totalNotVerifiedUsers || 0,
       icon: <HourglassEmpty />,
       change: "0%",
       from: "3",

@@ -12,7 +12,7 @@ const suppressResizeObserverError = () => {
   const resizeObserverErr = window.console.error;
   window.console.error = (...args) => {
     if (args[0]?.includes("ResizeObserver loop")) {
-      return; // Suppress this specific warning
+      return; 
     }
     resizeObserverErr(...args);
   };

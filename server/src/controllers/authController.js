@@ -1,5 +1,7 @@
 import bcrypt from "bcryptjs";
 import User from "../models/userModel.js";
+
+
 import jwt from "jsonwebtoken";
 import {
   sendForgotPassword,
@@ -344,7 +346,7 @@ export const signin = async (req, res) => {
     res.cookie("token", token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === "development",
-      maxAge: 3600000, // 1 hour
+      maxAge: 3600000, 
       sameSite: "strict",
     });
 
@@ -354,6 +356,8 @@ export const signin = async (req, res) => {
       userId: user._id,
       name: user.username,
       email: user.email,
+      role: user.role,
+      img: user.profilePic,
       token,
     });
   } catch (error) {
@@ -546,7 +550,9 @@ export const getAllUsers = async (req, res) => {
     const totalTodayJoinedUsers = await User.countDocuments({
       createdAt: { $gte: startOfDay, $lte: endOfDay },
     });
-
+   const totalNotVerifiedUsers = await User.countDocuments({
+    isVerified: false
+   })
     // Send a response with the users and statistics
     res.status(200).json({
       success: true,
@@ -556,6 +562,7 @@ export const getAllUsers = async (req, res) => {
         totalActiveUsers,
         totalDeactivatedUsers,
         totalTodayJoinedUsers,
+        totalNotVerifiedUsers
       },
       data: users.map((user) => ({
         id: user._id,

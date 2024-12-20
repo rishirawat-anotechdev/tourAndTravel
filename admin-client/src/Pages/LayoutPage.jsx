@@ -170,7 +170,7 @@ export const LoadingFallback = () => (
 
 const Layout = () => {
   const dispatch = useDispatch();
-  const { email, name, userId } = useSelector((state) => state.auth);
+  const { email, name, userId, img } = useSelector((state) => state.auth);
   const navigate = useNavigate();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -534,7 +534,7 @@ const Layout = () => {
           <Box sx={{ position: "relative", display: "inline-block" }}>
             <IconButton onClick={handleMenuOpen}>
               <Avatar
-               
+                src={img}
                 sx={{ width: 40, height: 40 }}
               >
                 {!name}

@@ -11,12 +11,19 @@ const ProtectedRoute = ({ children }) => {
     return Date.now() > tokenExpTime;
   };
 
+  const getUserRole = () => {
+    if (!token) return null;
+    return JSON.parse(atob(token.split(".")[1])).role;
+  };
+
   if (!isAuthenticated || isTokenExpired()) {
-    // Redirect to login if not authenticated or token has expired
     return <Navigate to="/signin" />;
   }
 
-  // If authenticated and token is not expired, render the child component
+  if (getUserRole() !== "admin") {
+    return <Navigate to="/signin" />;
+  }
+
   return children;
 };
 

@@ -5,6 +5,8 @@ const initialState = {
   token: null,
   name: null,
   email: null,
+  role: null,
+  img: null,
   isAuthenticated: false,
 };
 
@@ -17,6 +19,8 @@ const authSlice = createSlice({
       state.token = action.payload.token;
       state.name = action.payload.name;
       state.email = action.payload.email;
+      state.role = action.payload.role;
+      state.img = action.payload.img;
       state.isAuthenticated = true;
     },
     userLogout: (state) => {
@@ -24,6 +28,7 @@ const authSlice = createSlice({
       state.token = null;
       state.name = null;
       state.email = null;
+      state.role = null;
       state.isAuthenticated = false;
     },
     setTokenExpired: (state) => {

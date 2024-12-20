@@ -59,7 +59,7 @@ router.delete(
   verifyRole("admin"),
   deleteCategory
 );
-router.get("/category/getAllStatesOfCategory", getCategoriesWithPackageCount);
+router.get("/category/getAllStatesOfCategory",verifyToken, verifyRole("admin"), getCategoriesWithPackageCount);
 
 //////////////////// Admin Package routes //////////////////////
 // Package routes
@@ -168,7 +168,9 @@ router.patch(
 );
 
 // Admin Users Routes
-router.delete("/user/:userId", deleteUser);
-router.put("/user/:userId/status", updateUserStatus);
+router.delete("/user/:userId",  verifyToken,
+  verifyRole("admin"), deleteUser);
+router.put("/user/:userId/status",  verifyToken,
+  verifyRole("admin"), updateUserStatus);
 
 export default router;

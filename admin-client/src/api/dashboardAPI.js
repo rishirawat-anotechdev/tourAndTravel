@@ -18,23 +18,20 @@ export const getTickets = async () => {
   }
 };
 
-
 export const getDestinationPackages = async () => {
-    try {
-      const response = await baseurl.get("/package/allData");
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  };
+  try {
+    const response = await baseurl.get("/package/allData");
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};
 
-
-  export const getAllUsers = async () => {
-    try {
-      const response = await baseurl.get("/user/details");
-      return response;
-    } catch (error) {
-      throw error;
-    }
-  };
-
+export const getAllUsers = async () => {
+  try {
+    const response = await baseurl.get("/user/details");
+    return response;
+  } catch (error) {
+    throw error;
+  }
+};

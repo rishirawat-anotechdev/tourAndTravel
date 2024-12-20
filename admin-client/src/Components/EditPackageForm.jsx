@@ -15,7 +15,6 @@ import { useDropzone } from "react-dropzone";
 import { useSnackbar } from "./SnackbarProvider";
 import {
   getCategoryPackages,
-  createPackage,
   updatePackageById,
   getPackageById,
 } from "../api/packagesAPI";
