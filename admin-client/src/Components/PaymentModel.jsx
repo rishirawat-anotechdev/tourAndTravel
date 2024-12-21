@@ -9,7 +9,7 @@ import {
   Divider,
 } from "@mui/material";
 
-const PaymentInfoModal = ({ open, onClose, onApprove, onReject }) => {
+const PaymentInfoModal = ({ open, onClose, onApprove, onReject, payment }) => {
   const modalStyle = {
     position: "absolute",
     top: "50%",
@@ -25,91 +25,35 @@ const PaymentInfoModal = ({ open, onClose, onApprove, onReject }) => {
   return (
     <Modal open={open} onClose={onClose}>
       <Box sx={modalStyle}>
-        {/* Title */}
         <Typography variant="h6" textAlign="center" mb={2}>
           Payment Information
         </Typography>
 
-        {/* Payment Details */}
         <Grid container spacing={2}>
           <Grid item xs={4}>
             <Typography variant="body2" fontWeight="bold">
-              AMOUNT PAID:
+              Transaction ID:
             </Typography>
           </Grid>
           <Grid item xs={8}>
-            <Typography variant="body2">$12.74</Typography>
+            <Typography variant="body2">
+              {payment?.transactionId || "N/A"}
+            </Typography>
           </Grid>
 
           <Grid item xs={4}>
             <Typography variant="body2" fontWeight="bold">
-              DATE PAID:
+              Amount:
             </Typography>
           </Grid>
           <Grid item xs={8}>
-            <Typography variant="body2">11/11/2024</Typography>
-          </Grid>
-
-          <Grid item xs={4}>
-            <Typography variant="body2" fontWeight="bold">
-              PAYMENT METHOD:
+            <Typography variant="body2">
+              {payment?.amount?.$numberDecimal || "N/A"}
             </Typography>
-          </Grid>
-          <Grid item xs={8}>
-            <Typography variant="body2">Bank Transfer</Typography>
           </Grid>
         </Grid>
 
-        {/* Divider */}
         <Divider sx={{ my: 2 }} />
-
-        {/* Summary */}
-        <Typography variant="body2" fontWeight="bold" mb={1}>
-          SUMMARY
-        </Typography>
-        <Grid container spacing={1}>
-          <Grid item xs={6}>
-            <Typography variant="body2">AccountNumber</Typography>
-          </Grid>
-          <Grid item xs={6}>
-            <Typography variant="body2">dgfgdf</Typography>
-          </Grid>
-
-          <Grid item xs={6}>
-            <Typography variant="body2">BeneficiaryName</Typography>
-          </Grid>
-          <Grid item xs={6}>
-            <Typography variant="body2">dggdfg</Typography>
-          </Grid>
-
-          <Grid item xs={6}>
-            <Typography variant="body2">Address</Typography>
-          </Grid>
-          <Grid item xs={6}>
-            <Typography variant="body2">fgfdf</Typography>
-          </Grid>
-
-          <Grid item xs={6}>
-            <Typography variant="body2">NID</Typography>
-          </Grid>
-          <Grid item xs={6}>
-            <Typography variant="body2">[NID Content]</Typography>
-          </Grid>
-        </Grid>
-
-        {/* Feedback Section */}
-        <Typography variant="body2" fontWeight="bold" mt={2}>
-          SEND YOUR FEEDBACK
-        </Typography>
-        <TextField
-          fullWidth
-          multiline
-          rows={3}
-          placeholder="Feedback"
-          sx={{ mt: 1 }}
-        />
-
-        {/* Action Buttons */}
         <Box
           sx={{
             display: "flex",
@@ -122,10 +66,10 @@ const PaymentInfoModal = ({ open, onClose, onApprove, onReject }) => {
             Close
           </Button>
           <Button variant="contained" color="success" onClick={onApprove}>
-            Approved
+            Approve
           </Button>
           <Button variant="contained" color="error" onClick={onReject}>
-            Rejected
+            Reject
           </Button>
         </Box>
       </Box>
@@ -134,3 +78,4 @@ const PaymentInfoModal = ({ open, onClose, onApprove, onReject }) => {
 };
 
 export default PaymentInfoModal;
+

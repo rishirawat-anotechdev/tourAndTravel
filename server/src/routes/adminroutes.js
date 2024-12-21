@@ -42,6 +42,9 @@ import {
   updateTicketStatus,
 } from "../controllers/ticketController.js";
 import { deleteUser, updateUserStatus } from "../controllers/authController.js";
+import { deleteTour, getBookingDetails, getTourStatistics, updateStatus } from "../controllers/BookedTour.js";
+import { getPaymentStatistics } from "../payment/paymentController.js";
+import { adminVerifyPayment } from "../payment/adminVerifyPaymentController.js";
 
 const router = express.Router();
 
@@ -172,5 +175,24 @@ router.delete("/user/:userId",  verifyToken,
   verifyRole("admin"), deleteUser);
 router.put("/user/:userId/status",  verifyToken,
   verifyRole("admin"), updateUserStatus);
+
+// Admin booked tours Routes
+router.get("/payments/tour-statistics",verifyToken,
+  verifyRole("admin"), getTourStatistics);
+router.get("/payments/payment-statistics",
+  verifyToken,
+  verifyRole("admin"), getPaymentStatistics);
+// verify the payment on admin side 
+router.post("/payments/verify-payment",verifyToken,
+  verifyRole("admin"), adminVerifyPayment);
+
+
+/////////////////// Booked packages Routes////////////////////////////
+// Update status of a tour
+router.put('/booked/update-status', updateStatus);
+
+// Delete a booked tour
+router.delete('/booked/delete-tour/:tourId', deleteTour);
+router.get('/booked-tours/:bookingId', getBookingDetails);
 
 export default router;

@@ -1,7 +1,6 @@
 import razorpayInstance from "../utils/razorpay.js";
 import Order from "../models/orderModel.js";
 import Package from "../models/packageModel.js";
-import User from "../models/userModel.js";
 import Coupon from "../models/CouponModel.js";
 import mongoose from "mongoose";
 

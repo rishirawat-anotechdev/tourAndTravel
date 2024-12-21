@@ -139,7 +139,9 @@ const PaymentPage = () => {
             <CircularProgress />
           </Box>
         ) : filteredData.length === 0 ? (
-          <Typography sx={{ textAlign: "center", py: 5 }}>No Data Found</Typography>
+          <Typography sx={{ textAlign: "center", py: 5 }}>
+            No Data Found
+          </Typography>
         ) : (
           <TableContainer>
             <Table>
@@ -193,7 +195,9 @@ const PaymentPage = () => {
                           {row.status}
                         </Typography>
                       </TableCell>
-                      <TableCell>{new Date(row.bookingAt).toLocaleString()}</TableCell>
+                      <TableCell>
+                        {new Date(row.bookingAt).toLocaleString()}
+                      </TableCell>
                       <TableCell sx={{ whiteSpace: "nowrap" }}>
                         <Link to={row.action}>
                           <Button

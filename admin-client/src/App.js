@@ -73,7 +73,7 @@ const App = () => {
           <Route path="upcoming-tours" element={<UpcomingTour />} />
           <Route path="cancelled-tours" element={<CanceledTour />} />
           <Route path="completed-tours" element={<CompletedTour />} />
-          <Route path="booking-details" element={<BookingDetailsPage />} />
+          <Route path="booking-details/:bookingId" element={<BookingDetailsPage />} />
           <Route path="coupons" element={<CouponPage />} />
           <Route path="add-coupon" element={<AddViewCoupon />} />
           <Route path="edit/:id/coupon" element={<AddViewCoupon />} />

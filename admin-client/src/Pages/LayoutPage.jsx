@@ -134,10 +134,7 @@ const navLinks = [
         icon: <FaUsers size={24} />,
         link: "/admin/discounts",
         iconColor: "#98c93f",
-        sublinks: [
-          { text: "All Users", link: "/admin/all-users" },
-        
-        ],
+        sublinks: [{ text: "All Users", link: "/admin/all-users" }],
       },
     ],
   },
@@ -193,8 +190,6 @@ const Layout = () => {
   const handleMenuClose = () => {
     setAnchorEl(null);
   };
-
-
 
   useEffect(() => {
     // Get the last visited link from localStorage or default to "Dashboard"
@@ -436,12 +431,11 @@ const Layout = () => {
     setCurrentRoute(uppercaseRoute || "DASHBOARD");
   }, [window.location.pathname]);
 
-
-   const handleLogout = () => {
-      dispatch(userLogout());
-      logoutServer();
-      setAnchorEl(null);
-    };
+  const handleLogout = () => {
+    dispatch(userLogout());
+    logoutServer();
+    setAnchorEl(null);
+  };
 
   return (
     <Box sx={{ display: "flex" }}>
@@ -533,10 +527,7 @@ const Layout = () => {
           {/* Avatar with Active Dot */}
           <Box sx={{ position: "relative", display: "inline-block" }}>
             <IconButton onClick={handleMenuOpen}>
-              <Avatar
-                src={img}
-                sx={{ width: 40, height: 40 }}
-              >
+              <Avatar src={img} sx={{ width: 40, height: 40 }}>
                 {!name}
               </Avatar>
             </IconButton>
@@ -575,12 +566,7 @@ const Layout = () => {
                 px: 2,
               }}
             >
-              <Avatar
-                
-                sx={{ width: 45, height: 45 }}
-              >
-                {!name}
-              </Avatar>
+              <Avatar sx={{ width: 45, height: 45 }}>{!name}</Avatar>
               <Box>
                 <Typography variant="subtitle1" fontWeight="bold">
                   {name}

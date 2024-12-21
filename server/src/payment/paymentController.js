@@ -38,7 +38,7 @@ export const verifyPayment = async (req, res) => {
       .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
-    console.log("rishi");
+   
 
     if (generatedSignature !== razorpay_signature) {
       await session.abortTransaction();
@@ -46,7 +46,7 @@ export const verifyPayment = async (req, res) => {
         .status(400)
         .json({ success: false, message: "Invalid payment signature" });
     }
-    console.log("rishi2");
+    
     // Save payment details
     const paymentDetails = new PaymentDetails({
       transactionId: razorpay_payment_id,
@@ -61,7 +61,7 @@ export const verifyPayment = async (req, res) => {
     });
 
     await paymentDetails.save({ session });
-    console.log("rishi3");
+
     // Update order status
     order.status = "Confirmed";
     await order.save({ session });
@@ -98,6 +98,7 @@ export const getPayments = async (req, res) => {
   }
 };
 
+// get payment details by userId
 export const getPaymentDetailsByUser = async (req, res) => {
   const { userId } = req.params;
 
@@ -136,5 +137,77 @@ export const getPaymentDetailsByUser = async (req, res) => {
       success: false,
       message: 'An error occurred while fetching payment details.',
     });
+  }
+};
+
+// get payment details 
+export const getPaymentStatistics = async (req, res) => {
+  try {
+    const pipeline = [
+      {
+        $lookup: {
+          from: "users", 
+          localField: "userId",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      { $unwind: "$user" }, 
+      {
+        $addFields: {
+          touristName: { $concat: ["$user.firstname", " ", "$user.lastname"] },
+        },
+      },
+      {
+        $facet: {
+        
+          paymentCounts: [
+            {
+              $group: {
+                _id: "$status",
+                count: { $sum: 1 },
+              },
+            },
+          ],
+          paymentDetails: [
+            {
+              $project: {
+                transactionId: 1,
+                touristName: 1,
+                method: 1,
+                amount: 1,
+                status: 1,
+                date: 1,
+                payableAmount: "$amount",
+                paymentVerifiedByAdmin: 1,
+              },
+              
+            },
+          ],
+        },
+      },
+    ];
+
+    const result = await PaymentDetails.aggregate(pipeline);
+
+    // Parse counts into a structured format
+    const counts = {
+      totalPayments: result[0]?.paymentDetails.length || 0,
+      successPayments:
+        result[0]?.paymentCounts.find((c) => c._id === "Completed")?.count || 0,
+      pendingPayments:
+        result[0]?.paymentCounts.find((c) => c._id === "Pending")?.count || 0,
+      failedPayments:
+        result[0]?.paymentCounts.find((c) => c._id === "Failed")?.count || 0,
+    };
+
+    res.status(200).json({
+      success: true,
+      counts,
+      paymentLogs: result[0]?.paymentDetails || [],
+    });
+  } catch (error) {
+    console.error("Error in getPaymentStatistics:", error);
+    res.status(500).json({ success: false, message: "Server error" });
   }
 };

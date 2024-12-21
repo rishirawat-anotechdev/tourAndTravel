@@ -15,5 +15,5 @@ router.post('/verify',verifyToken, verifyPayment);
 router.get('/',verifyToken, getPayments);
 
 router.get("/bookings/:userId/summary",verifyToken, getBookingSummary);
-router.get('/transactions/:userId', getPaymentDetailsByUser);
+router.get('/transactions/:userId',verifyToken, getPaymentDetailsByUser);
 export default router;

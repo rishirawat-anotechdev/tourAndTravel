@@ -1,7 +1,8 @@
 import {
+  Alert,
   Box,
   Button,
-  Checkbox,
+  CircularProgress,
   Grid,
   Modal,
   Paper,
@@ -14,94 +15,58 @@ import {
   TextField,
   Typography,
 } from "@mui/material";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import StatisticCard from "../Components/StatisticCard";
-import { Edit, FilterList, Search } from "@mui/icons-material";
+import { Edit, Search } from "@mui/icons-material";
 import CustomPagination from "../Components/CustomPagination";
-import first1 from "../assets/first1.jpg";
 import PaymentInfoModal from "../Components/PaymentModel";
-
-const data = [
-  {
-    title: "Total Payment Log",
-    value: 219,
-    total: 219,
-    percentage: 219,
-    isPositive: true,
-  },
-  {
-    title: "Payment Success",
-    value: 34,
-    total: 14,
-    percentage: 0,
-    isPositive: false,
-  },
-  {
-    title: "Pending Payment",
-    value: 15,
-    total: 219,
-    percentage: 6.85,
-    isPositive: false,
-  },
-  {
-    title: "Cancel Payment",
-    value: 0,
-    total: 14,
-    percentage: 0,
-    isPositive: false,
-  },
-];
-
-const transactionData = [
-  {
-    id: 1,
-    TouristName: "Rocky Singh",
-    Email: "raw@rocky.gamil.com",
-    Method: "Stripe",
-    Amount: "$499",
-    paymentAmount: "$499",
-    status: "Successful",
-    createdAt: "16/09/2024",
-  },
-  {
-    id: 2,
-    TouristName: "Rishi Singh",
-    Email: "rawat@rocky.gamil.com",
-    Method: "payU",
-    Amount: "$699",
-    paymentAmount: "$699",
-    status: "Pending",
-    createdAt: "18/10/2024",
-  },
-];
+import { getPaymentStats, updatePaymentByAdmin } from "../api/paymentAPI";
+import { useSnackbar } from "../Components/SnackbarProvider";
 
 const AllTransactionPage = () => {
+  const { showSnackbar } = useSnackbar();
   const [rowsPerPage, setRowsPerPage] = useState(10);
   const [page, setPage] = useState(0);
-  const [openFilterModal, setOpenFilterModal] = useState(false);
+
   const [searchQuery, setSearchQuery] = useState("");
-  const [filteredData, setFilteredData] = useState(transactionData);
-  const [selectedRows, setSelectedRows] = useState([]);
+  const [paymentData, setPaymentData] = useState([]);
+  const [filteredData, setFilteredData] = useState([]);
+
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalType, setModalType] = useState("");
-  const [open, setOpen] = useState(false);
 
-  const handleApprove = () => {
-    console.log("Approved");
-    setOpen(false);
-  };
+  const [paymentCardData, setPaymentCardData] = useState([]);
+  const [selectedPayment, setSelectedPayment] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [orderId, setOrderId] = useState(""); 
+  const [transactionId, setTransactionId] = useState(""); 
 
-  const handleReject = () => {
-    console.log("Rejected");
-    setOpen(false);
-  };
+  useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      try {
+        const response = await getPaymentStats();
+        setPaymentCardData(response.data);
+        setPaymentData(response.data.paymentLogs);
+        setFilteredData(response.data.paymentLogs);
+        setError(null);
+      } catch (error) {
+        console.error("Error fetching payment data:", error.message);
+        setError("Failed to fetch payment data. Please try again later.");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   // Handle Search
   const handleSearch = (event) => {
     const query = event.target.value.toLowerCase();
     setSearchQuery(query);
-    const filtered = transactionData.filter((item) =>
-      item.destination.toLowerCase().includes(query)
+    const filtered = paymentData.filter((item) =>
+      item?.transactionId?.toLowerCase().includes(query)
     );
     setFilteredData(filtered);
   };
@@ -116,43 +81,91 @@ const AllTransactionPage = () => {
     setPage(0);
   };
 
-  // Handle Row Selection
-  const handleSelectAll = (event) => {
-    if (event.target.checked) {
-      setSelectedRows(filteredData.map((row) => row.id));
-    } else {
-      setSelectedRows([]);
-    }
-  };
-
-  const handleSelectRow = (id) => {
-    if (selectedRows.includes(id)) {
-      setSelectedRows(selectedRows.filter((rowId) => rowId !== id));
-    } else {
-      setSelectedRows([...selectedRows, id]);
-    }
-  };
-
-
-
-
-  
-
-  // Open Confirmation Modal
-  const openModal = (type) => {
-    setModalType(type);
+  // Handle Open Modal
+  const handleOpenModal = (payment) => {
+    setSelectedPayment(payment);
+    setOrderId(payment?.orderId || ""); 
+    setTransactionId(payment?.transactionId || ""); 
     setIsModalOpen(true);
   };
 
   const closeModal = () => {
     setIsModalOpen(false);
-    setModalType("");
+    setOrderId(""); 
+    setTransactionId(""); 
   };
+
+  // Handle Verify Payment
+  const handleVerifyPayment = async () => {
+    if (!orderId || !transactionId) return;
+
+    try {
+      const response = await updatePaymentByAdmin({
+        orderId,
+        paymentId:transactionId,
+      });
+   
+      showSnackbar(response.data.message || "Verify Payment response:", "success");
+      setIsModalOpen(false); 
+    } catch (error) {
+      console.error("Error in verifying payment:", error.message);
+      showSnackbar(error.response.data.message || " failed to Verify Payment response:", "error");
+    }
+  };
+
+  // Loader or Error UI
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", mt: 4 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return (
+      <Box sx={{ mt: 4, mx: "auto", maxWidth: 600 }}>
+        <Alert severity="error">{error}</Alert>
+      </Box>
+    );
+  }
+
+  const data = [
+    {
+      title: "Total Payments",
+      value: paymentCardData?.counts?.totalPayments || 0,
+      total: paymentCardData?.counts?.totalPayments || 0,
+      percentage: 219,
+      isPositive: true,
+    },
+    {
+      title: "Payment Success",
+      value: paymentCardData?.counts?.successPayments || 0,
+      total: paymentCardData?.counts?.totalPayments || 0,
+      percentage: 0,
+      isPositive: false,
+    },
+    {
+      title: "Pending Payment",
+      value: paymentCardData?.counts?.pendingPayments || 0,
+      total: paymentCardData?.counts?.totalPayments || 0,
+      percentage: 6.85,
+      isPositive: false,
+    },
+    {
+      title: "Cancel Payment",
+      value: paymentCardData?.counts?.failedPayments || 0,
+      total: paymentCardData?.counts?.totalPayments || 0,
+      percentage: 0,
+      isPositive: false,
+    },
+  ];
+
   return (
     <Box>
       <Box sx={{ border: "10px", my: 2, borderColor: "#888" }} />
       <Grid container spacing={3}>
-        {data.map((item, index) => (
+        {data?.map((item, index) => (
           <Grid item xs={12} sm={6} md={3} key={index}>
             <StatisticCard
               title={item.title}
@@ -165,7 +178,7 @@ const AllTransactionPage = () => {
         ))}
       </Grid>
 
-      {/* Search and Actions Table*/}
+      {/* Search and Actions Table */}
       <Box component={Paper} sx={{ bgcolor: "#fff", mt: 4 }}>
         <Box
           sx={{
@@ -178,7 +191,7 @@ const AllTransactionPage = () => {
         >
           <Box sx={{ display: "flex", alignItems: "center" }}>
             <TextField
-              label="Search Destinations"
+              label="Search Transaction ID"
               variant="standard"
               size="small"
               value={searchQuery}
@@ -206,65 +219,15 @@ const AllTransactionPage = () => {
             />
             <Search sx={{ mt: 2.2, color: "gray" }} />
           </Box>
-
-          <Box>
-            {selectedRows.length > 0 ? (
-              <>
-                <Button
-                  variant="contained"
-                  sx={{
-                    backgroundColor: "#d32f2f",
-                    marginRight: 2,
-                    fontSize: "10px",
-                  }}
-                  onClick={() => openModal("delete")}
-                >
-                  Delete
-                </Button>
-                <Button
-                  variant="contained"
-                  sx={{ backgroundColor: "#1976d2", fontSize: "10px" }}
-                  onClick={() => setOpen(true)}
-                >
-                  Change Status
-                </Button>
-              </>
-            ) : (
-              <>
-                <Button
-                  variant="outlined"
-                  startIcon={<FilterList />}
-                  onClick={() => setOpenFilterModal(true)}
-                  sx={{
-                    marginRight: 2,
-                    color: "#888",
-                    borderColor: "#eef0f7",
-                    fontSize: "10px",
-                  }}
-                >
-                  Filter
-                </Button>
-              </>
-            )}
-          </Box>
         </Box>
 
         <TableContainer>
           <Table>
             <TableHead sx={{ backgroundColor: "#f1f3f5" }}>
               <TableRow>
-                <TableCell padding="checkbox">
-                  <Checkbox
-                    sx={{ color: "#888" }}
-                    indeterminate={
-                      selectedRows.length > 0 &&
-                      selectedRows.length < filteredData.length
-                    }
-                    checked={selectedRows.length === filteredData.length}
-                    onChange={handleSelectAll}
-                  />
+                <TableCell sx={{ whiteSpace: "nowrap" }}>
+                  Transaction Id
                 </TableCell>
-                <TableCell sx={{whiteSpace:"nowrap"}}>Transaction Id</TableCell>
                 <TableCell>Tourist</TableCell>
                 <TableCell>Method</TableCell>
                 <TableCell>Amount</TableCell>
@@ -276,39 +239,25 @@ const AllTransactionPage = () => {
             </TableHead>
             <TableBody>
               {filteredData
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+                ?.slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row) => (
-                  <TableRow key={row.id}>
-                    <TableCell padding="checkbox">
-                      <Checkbox
-                        sx={{ color: "#888" }}
-                        checked={selectedRows.includes(row.id)}
-                        onChange={() => handleSelectRow(row.id)}
-                      />
-                    </TableCell>
-                    <TableCell>{row.id}</TableCell>
+                  <TableRow key={row._id}>
+                    <TableCell>{row?.transactionId}</TableCell>
                     <TableCell>
                       <Box sx={{ display: "flex", alignItems: "center" }}>
-                        <img
-                          src={first1}
-                          alt={row.packages}
-                          style={{
-                            width: "32px",
-                            height: "32px",
-                            borderRadius: "50%",
-                            marginRight: "8px",
-                          }}
-                        />
                         <Typography>
-                          {row.TouristName}
-                          <Typography style={{color:"#888", fontSize:"12px", }}> {row.Email}</Typography>
+                          {row.touristName}
+                          <Typography
+                            style={{ color: "#888", fontSize: "12px" }}
+                          >
+                            {row.Email}
+                          </Typography>
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell>{row.Method}</TableCell>
-                    <TableCell>{row.Amount}</TableCell>
-                    <TableCell>{row.paymentAmount}</TableCell>
-                  
+                    <TableCell>{row?.method}</TableCell>
+                    <TableCell>{row?.amount?.$numberDecimal}</TableCell>
+                    <TableCell>{row?.payableAmount?.$numberDecimal}</TableCell>
                     <TableCell>
                       <Typography
                         sx={{
@@ -320,26 +269,26 @@ const AllTransactionPage = () => {
                           fontSize: "12px",
                         }}
                       >
-                        {row.status}
+                        {row?.status}
                       </Typography>
                     </TableCell>
-                    <TableCell>{row.createdAt}</TableCell>
+                    <TableCell>
+                      {new Date(row?.date).toLocaleDateString()}
+                    </TableCell>
                     <TableCell sx={{ whiteSpace: "nowrap" }}>
-                     
-                        <Button
-                          variant="outlined"
-                          startIcon={<Edit />}
-                          onClick={() => setOpen(true)}
-                          sx={{
-                            color: "#888",
-                            borderColor: "#eef0f7",
-                            fontSize: "10px",
-                            whiteSpace: "nowrap",
-                          }}
-                        >
-                          Edit
-                        </Button>
-                
+                      <Button
+                        variant="outlined"
+                        startIcon={<Edit />}
+                        onClick={() => handleOpenModal(row)}
+                        sx={{
+                          color: "#888",
+                          borderColor: "#eef0f7",
+                          fontSize: "10px",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        Edit
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -357,16 +306,7 @@ const AllTransactionPage = () => {
         />
       </Box>
 
-      <PaymentInfoModal 
-      
-       open={open}
-       onClose={() => setOpen(false)}
-       onApprove={handleApprove}
-       onReject={handleReject}
-     />
-      
-
-      {/* Confirmation Modal */}
+      {/* Modal for verifying payment */}
       <Modal open={isModalOpen} onClose={closeModal}>
         <Box
           sx={{
@@ -375,60 +315,39 @@ const AllTransactionPage = () => {
             left: "50%",
             transform: "translate(-50%, -50%)",
             bgcolor: "background.paper",
-            boxShadow: 24,
             p: 4,
+            width: "400px",
             borderRadius: 2,
+            boxShadow: 24,
           }}
         >
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            {modalType === "delete"
-              ? "Are you sure you want to delete the selected rows?"
-              : "Are you sure you want to change the status of the selected rows?"}
+          <Typography variant="h6" gutterBottom>
+            Verify the Payment
           </Typography>
-          <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
-            <Button onClick={closeModal} variant="outlined">
+          <TextField
+            label="Order ID"
+            variant="outlined"
+            fullWidth
+            value={orderId}
+            onChange={(e) => setOrderId(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            label="Transaction ID"
+            variant="outlined"
+            fullWidth
+            value={transactionId}
+            onChange={(e) => setTransactionId(e.target.value)}
+            sx={{ mb: 2 }}
+          />
+          <Box sx={{ display: "flex", justifyContent: "space-between" }}>
+            <Button variant="contained" onClick={handleVerifyPayment}>
+              Verify
+            </Button>
+            <Button variant="outlined" onClick={closeModal}>
               Cancel
             </Button>
-            <Button
-              onClick={closeModal}
-              variant="contained"
-              color={modalType === "delete" ? "error" : "primary"}
-            >
-              Confirm
-            </Button>
           </Box>
-        </Box>
-      </Modal>
-
-      {/* Filter Modal */}
-      <Modal
-        open={openFilterModal}
-        onClose={() => setOpenFilterModal(false)}
-        aria-labelledby="filter-modal"
-        aria-describedby="filter-modal-description"
-      >
-        <Box
-          sx={{
-            width: 400,
-            backgroundColor: "#fff",
-            borderRadius: 2,
-            boxShadow: 24,
-            padding: 4,
-            margin: "auto",
-            marginTop: "15vh",
-          }}
-        >
-          <Typography variant="h6" id="filter-modal">
-            Filter Destinations
-          </Typography>
-          <Button
-            onClick={() => setOpenFilterModal(false)}
-            sx={{ marginTop: 2 }}
-            fullWidth
-            variant="contained"
-          >
-            Apply Filter
-          </Button>
         </Box>
       </Modal>
     </Box>
